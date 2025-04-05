@@ -17,7 +17,8 @@ import {
 } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, Github, Chrome } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -30,7 +31,7 @@ type LoginValues = z.infer<typeof loginSchema>;
 type SignupValues = z.infer<typeof signupSchema>;
 
 const Auth = () => {
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, signIn, signUp, signInWithProvider } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('login');
@@ -82,6 +83,17 @@ const Auth = () => {
     }
   };
 
+  const handleSocialLogin = async (provider: 'github' | 'google') => {
+    setIsLoading(true);
+    try {
+      await signInWithProvider(provider);
+    } catch (error) {
+      console.error(`${provider} login error:`, error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -110,7 +122,7 @@ const Auth = () => {
                 <CardTitle>Login</CardTitle>
                 <CardDescription>Enter your email and password to access your account</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <Form {...loginForm}>
                   <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
                     <FormField
@@ -173,6 +185,38 @@ const Auth = () => {
                     </Button>
                   </form>
                 </Form>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-card px-2 text-sm text-muted-foreground">Or continue with</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSocialLogin('github')}
+                    disabled={isLoading}
+                  >
+                    <Github className="mr-2 h-4 w-4" />
+                    GitHub
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSocialLogin('google')}
+                    disabled={isLoading}
+                  >
+                    <Chrome className="mr-2 h-4 w-4" />
+                    Google
+                  </Button>
+                </div>
               </CardContent>
               <CardFooter className="flex justify-center">
                 <p className="text-sm text-muted-foreground">
@@ -195,7 +239,7 @@ const Auth = () => {
                 <CardTitle>Create an account</CardTitle>
                 <CardDescription>Enter your email and create a password</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <Form {...signupForm}>
                   <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
                     <FormField
@@ -258,6 +302,38 @@ const Auth = () => {
                     </Button>
                   </form>
                 </Form>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="bg-card px-2 text-sm text-muted-foreground">Or continue with</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSocialLogin('github')}
+                    disabled={isLoading}
+                  >
+                    <Github className="mr-2 h-4 w-4" />
+                    GitHub
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSocialLogin('google')}
+                    disabled={isLoading}
+                  >
+                    <Chrome className="mr-2 h-4 w-4" />
+                    Google
+                  </Button>
+                </div>
               </CardContent>
               <CardFooter className="flex justify-center">
                 <p className="text-sm text-muted-foreground">
