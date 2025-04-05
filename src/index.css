@@ -156,4 +156,26 @@
   .chat-message-ai {
     @apply bg-gray-100 text-gray-800;
   }
+
+  /* Attendance tracking */
+  .attendance-active {
+    @apply bg-green-50 border-green-200;
+  }
+  
+  .attendance-complete {
+    @apply bg-blue-50 border-blue-200;
+  }
+
+  /* Animation utilities */
+  .animate-fade-in {
+    @apply animate-in fade-in duration-500;
+  }
+  
+  .animate-slide-in {
+    @apply animate-in slide-in-from-bottom-8 duration-500;
+  }
+  
+  .animate-slide-up {
+    @apply animate-in slide-in-from-bottom-4 duration-300;
+  }
 }
