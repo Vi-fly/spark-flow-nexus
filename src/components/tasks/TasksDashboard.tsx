@@ -31,7 +31,7 @@ const sampleTasks: Task[] = [
   {
     id: '3',
     title: 'Fix navigation bug',
-    description: 'Fix the navigation issue on mobile devices where the menu doesn't close after selection.',
+    description: 'Fix the navigation issue on mobile devices where the menu doesn\'t close after selection.',
     deadline: new Date('2025-04-10'),
     priority: 'high',
     status: 'done',
