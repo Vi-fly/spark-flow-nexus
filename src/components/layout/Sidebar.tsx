@@ -13,20 +13,24 @@ import {
   MessageSquare, 
   Clock,
   Menu,
-  X
+  X,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 type SidebarProps = {
   className?: string;
 };
 
+// Navigation item type definition
 type NavItem = {
   title: string;
   icon: React.ElementType;
   path: string;
 };
 
+// Main navigation items
 const navItems: NavItem[] = [
   { title: 'Home', icon: Home, path: '/' },
   { title: 'Contacts', icon: Users, path: '/contacts' },
@@ -37,11 +41,15 @@ const navItems: NavItem[] = [
   { title: 'Data View', icon: Database, path: '/data' },
   { title: 'Discussions', icon: MessageSquare, path: '/discussions' },
   { title: 'Attendance', icon: Clock, path: '/attendance' },
+  { title: 'Settings', icon: SettingsIcon, path: '/settings' },
 ];
 
+// Sidebar component for application navigation
 export function Sidebar({ className }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const { user } = useAuth();
 
+  // Toggle sidebar between collapsed and expanded states
   const toggleSidebar = () => setCollapsed(!collapsed);
 
   return (
@@ -117,14 +125,14 @@ export function Sidebar({ className }: SidebarProps) {
           collapsed ? "justify-center" : "space-x-3"
         )}>
           <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-medium">
-            U
+            {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
           </div>
           <div className={cn(
             "flex flex-col transition-all duration-300",
             collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
           )}>
-            <span className="text-sm font-medium">User Name</span>
-            <span className="text-xs text-muted-foreground">user@example.com</span>
+            <span className="text-sm font-medium">{user?.email ? user.email.split('@')[0] : 'User'}</span>
+            <span className="text-xs text-muted-foreground">{user?.email || 'user@example.com'}</span>
           </div>
         </div>
       </div>
