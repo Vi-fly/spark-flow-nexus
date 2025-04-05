@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { ContactForm } from './ContactForm';
 import { Search, User, Mail, Phone, MapPin, Briefcase } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 type Contact = {
   id: string;
