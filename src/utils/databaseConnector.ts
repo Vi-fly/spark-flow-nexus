@@ -27,6 +27,8 @@ export class DatabaseConnector {
   private static instance: DatabaseConnector;
   private currentConnection: DatabaseType | null = null;
   private config: ConnectionConfig = {};
+  private connectionStatus: 'connected' | 'disconnected' | 'error' = 'disconnected';
+  private lastError: string | null = null;
 
   private constructor() {
     // Singleton pattern
@@ -49,6 +51,8 @@ export class DatabaseConnector {
     console.log('Configuring MongoDB connection...');
     this.config.mongodb = { uri, dbName };
     this.currentConnection = 'mongodb';
+    this.connectionStatus = 'disconnected'; // Reset status
+    this.lastError = null;
     this.saveConnectionConfig();
   }
 
@@ -59,6 +63,8 @@ export class DatabaseConnector {
     console.log('Configuring NeonDB connection...');
     this.config.neondb = { connectionString };
     this.currentConnection = 'neondb';
+    this.connectionStatus = 'disconnected'; // Reset status
+    this.lastError = null;
     this.saveConnectionConfig();
   }
 
@@ -69,6 +75,8 @@ export class DatabaseConnector {
     console.log('Configuring Supabase connection...');
     this.config.supabase = { url, key };
     this.currentConnection = 'supabase';
+    this.connectionStatus = 'disconnected'; // Reset status
+    this.lastError = null;
     this.saveConnectionConfig();
   }
 
@@ -84,6 +92,20 @@ export class DatabaseConnector {
    */
   public getConnectionConfig(): ConnectionConfig {
     return this.config;
+  }
+
+  /**
+   * Get connection status
+   */
+  public getConnectionStatus(): 'connected' | 'disconnected' | 'error' {
+    return this.connectionStatus;
+  }
+
+  /**
+   * Get last error
+   */
+  public getLastError(): string | null {
+    return this.lastError;
   }
 
   /**
@@ -109,6 +131,7 @@ export class DatabaseConnector {
         console.log(`Loaded saved ${this.currentConnection} configuration`);
       } catch (error) {
         console.error('Failed to parse saved database configuration', error);
+        this.lastError = 'Failed to load saved configuration';
       }
     }
   }
@@ -119,6 +142,8 @@ export class DatabaseConnector {
   public async testConnection(): Promise<boolean> {
     if (!this.currentConnection) {
       console.error('No database configured');
+      this.connectionStatus = 'error';
+      this.lastError = 'No database configured';
       return false;
     }
 
@@ -126,25 +151,60 @@ export class DatabaseConnector {
       switch (this.currentConnection) {
         case 'mongodb':
           console.log('Testing MongoDB connection...');
+          if (!this.config.mongodb?.uri) {
+            throw new Error('MongoDB URI is not configured');
+          }
           // In a production app, we would actually try to connect
-          return !!this.config.mongodb?.uri;
+          this.connectionStatus = 'connected';
+          return true;
         case 'neondb':
           console.log('Testing NeonDB connection...');
+          if (!this.config.neondb?.connectionString) {
+            throw new Error('NeonDB connection string is not configured');
+          }
           // In a production app, we would actually try to connect
-          return !!this.config.neondb?.connectionString;
+          this.connectionStatus = 'connected';
+          return true;
         case 'supabase':
           console.log('Testing Supabase connection...');
+          if (!this.config.supabase?.url || !this.config.supabase?.key) {
+            throw new Error('Supabase credentials are not configured');
+          }
           // In a production app, we would actually try to connect
-          return !!this.config.supabase?.url && !!this.config.supabase?.key;
+          this.connectionStatus = 'connected';
+          return true;
         default:
-          return false;
+          throw new Error('Unknown database type');
       }
     } catch (error) {
       console.error(`Failed to test ${this.currentConnection} connection`, error);
+      this.connectionStatus = 'error';
+      this.lastError = error instanceof Error ? error.message : 'Unknown error';
       return false;
     }
+  }
+
+  /**
+   * Get direct connection to the current database (this would be implemented with actual DB clients)
+   */
+  public async getConnection() {
+    if (!this.currentConnection) {
+      throw new Error('No database configured');
+    }
+
+    if (this.connectionStatus !== 'connected') {
+      const success = await this.testConnection();
+      if (!success) {
+        throw new Error(`Failed to connect to ${this.currentConnection}: ${this.lastError}`);
+      }
+    }
+
+    // This would return the actual connection object in a real implementation
+    return {
+      type: this.currentConnection,
+      isConnected: this.connectionStatus === 'connected'
+    };
   }
 }
 
 export const databaseConnector = DatabaseConnector.getInstance();
-
