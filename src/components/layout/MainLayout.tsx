@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
@@ -13,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
  */
 export function MainLayout() {
   const { signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const location = useLocation();
   const [pageKey, setPageKey] = useState(location.pathname);
   
@@ -20,6 +22,13 @@ export function MainLayout() {
   useEffect(() => {
     setPageKey(location.pathname);
   }, [location.pathname]);
+  
+  /**
+   * Toggle between light and dark theme
+   */
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
   
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
@@ -37,6 +46,21 @@ export function MainLayout() {
             <Outlet />
           </motion.div>
         </AnimatePresence>
+        
+        {/* Theme toggler */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="absolute top-4 right-14 hover:bg-primary/10 transition-all duration-300"
+          onClick={toggleTheme}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
+        </Button>
         
         {/* Logout button with hover animation */}
         <Button 
