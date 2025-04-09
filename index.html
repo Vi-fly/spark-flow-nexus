@@ -1,27 +1,138 @@
 
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Task Manager</title>
-    <meta name="description" content="A beautiful task management application with Python backend and micro-animations" />
-    <meta name="author" content="Lovable" />
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager</title>
+  <meta name="description" content="A beautiful task management application with Python backend and micro-animations" />
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: 'rgb(99, 102, 241)',
+            sidebar: 'rgb(249, 250, 251)',
+            'sidebar-border': 'rgb(229, 231, 235)',
+            'sidebar-foreground': 'rgb(107, 114, 128)',
+            'sidebar-accent': 'rgb(243, 244, 246)'
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-out forwards',
+            'slide-in': 'slideIn 0.5s ease-out forwards',
+            'hover-lift': 'hoverLift 0.3s ease forwards'
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' }
+            },
+            slideIn: {
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(0)' }
+            },
+            hoverLift: {
+              '0%': { transform: 'translateY(0)' },
+              '100%': { transform: 'translateY(-5px)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex">
+  <!-- Sidebar -->
+  <div id="sidebar" class="w-64 h-screen bg-sidebar border-r border-sidebar-border">
+    <div class="flex items-center justify-center h-16 border-b border-sidebar-border">
+      <h1 class="text-xl font-bold text-indigo-600">Task Manager</h1>
+    </div>
+    <nav class="mt-6 px-2">
+      <ul class="space-y-2" id="navItems">
+        <!-- Will be populated by JavaScript -->
+      </ul>
+    </nav>
+    <div class="absolute bottom-0 w-full p-4 border-t border-sidebar-border">
+      <div class="flex items-center space-x-3">
+        <div class="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-medium">
+          U
+        </div>
+        <div class="flex flex-col">
+          <span class="text-sm font-medium">User</span>
+          <span class="text-xs text-gray-500">user@example.com</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <meta property="og:title" content="Task Manager" />
-    <meta property="og:description" content="A beautiful task management application with Python backend and micro-animations" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+  <!-- Main Content -->
+  <main class="flex-1 overflow-auto relative">
+    <div id="content" class="container p-6 h-full animate-fade-in">
+      <!-- Page content will be loaded here -->
+    </div>
+    
+    <!-- Theme toggler -->
+    <button id="themeToggle" class="absolute top-4 right-14 hover:bg-primary/10 transition-all duration-300 p-2 rounded-full">
+      <svg id="sunIcon" class="h-4 w-4 hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+      </svg>
+      <svg id="moonIcon" class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+    </button>
+    
+    <!-- Logout button -->
+    <button id="logoutBtn" class="absolute top-4 right-4 hover:bg-red-500/10 transition-all duration-300 hover:rotate-12 p-2 rounded-full">
+      <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+        <polyline points="16 17 21 12 16 7"></polyline>
+        <line x1="21" y1="12" x2="9" y2="12"></line>
+      </svg>
+    </button>
+  </main>
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-  </head>
+  <!-- Toast notification -->
+  <div id="toast" class="fixed bottom-4 right-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg transform translate-y-10 opacity-0 transition-all duration-300 hidden">
+    <div class="flex items-center">
+      <svg class="w-5 h-5 mr-2 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span id="toastMessage">Operation successful!</span>
+    </div>
+  </div>
 
-  <body>
-    <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+  <!-- Auth Modal -->
+  <div id="authModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-lg w-full max-w-md">
+      <h2 class="text-2xl font-bold mb-6 text-center">Login to Task Manager</h2>
+      <form id="authForm">
+        <div class="mb-4">
+          <label for="email" class="block text-sm font-medium mb-1">Email</label>
+          <input type="email" id="email" class="w-full p-2 border rounded-md" required>
+        </div>
+        <div class="mb-6">
+          <label for="password" class="block text-sm font-medium mb-1">Password</label>
+          <input type="password" id="password" class="w-full p-2 border rounded-md" required>
+        </div>
+        <div class="flex justify-between items-center mb-4">
+          <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-all">Sign In</button>
+          <button type="button" id="signUpBtn" class="text-indigo-600 hover:underline">Create account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.ts"></script>
+</body>
 </html>
