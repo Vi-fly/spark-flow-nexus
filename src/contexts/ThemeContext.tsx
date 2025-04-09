@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 type ThemeContextType = {
   theme: string;
   setTheme: (theme: string) => void;
+  toggleTheme: () => void; // Added toggleTheme function type
 };
 
 // Create the context with default values
@@ -24,6 +25,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     return prefersDark ? 'dark' : 'light';
   });
+
+  // Function to toggle between light and dark themes
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
+  };
 
   // Update localStorage and apply theme when it changes
   useEffect(() => {
@@ -59,7 +65,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   // Provide theme state and setter to children
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
