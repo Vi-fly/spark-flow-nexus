@@ -14,6 +14,7 @@ import Contacts from "./pages/Contacts";
 import Settings from "./pages/Settings";
 import Discussions from "./pages/Discussions";
 import Gantt from "./pages/Gantt";
+import ProjectDetails from "./pages/ProjectDetails";
 import Email from "./pages/Email";
 import Resources from "./pages/Resources";
 import Attendance from "./pages/Attendance";
@@ -40,6 +41,7 @@ const App = () => (
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/discussions" element={<Discussions />} />
                   <Route path="/gantt" element={<Gantt />} />
+                  <Route path="/project/:projectId" element={<ProjectDetails />} />
                   <Route path="/email" element={<Email />} />
                   <Route path="/resources" element={<Resources />} />
                   <Route path="/data" element={
