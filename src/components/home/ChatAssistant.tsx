@@ -40,7 +40,7 @@ const initializeGroqModel = () => {
     
     return new ChatGroq({
       apiKey,
-      modelName: "llama3-70b-8192", // or any other Groq model you want to use
+      model: "llama3-70b-8192", // Fixed: using 'model' instead of 'modelName'
     });
   } catch (error) {
     console.error('Failed to initialize Groq model:', error);
