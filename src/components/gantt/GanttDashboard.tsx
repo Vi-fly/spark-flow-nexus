@@ -23,15 +23,9 @@ import {
   Cell,
   TooltipProps
 } from 'recharts';
-import {
-  Grid,
-  NameType,
-  ValueType
-} from 'recharts';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { 
-  ChartBarHorizontal, 
-  ChartPie, 
+  BarChartHorizontal, 
+  PieChart as PieChartIcon, 
   CheckSquare,
   Clock,
   Hourglass,
@@ -115,7 +109,7 @@ export const GanttDashboard = () => {
   ];
 
   // Custom tooltip formatter
-  const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-background border rounded shadow-lg p-2 text-xs">
@@ -188,7 +182,7 @@ export const GanttDashboard = () => {
             <Card className="w-full h-full">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <ChartPie className="h-5 w-5" />
+                  <PieChartIcon className="h-5 w-5" />
                   Task Status Distribution
                 </CardTitle>
                 <CardDescription>
@@ -228,7 +222,7 @@ export const GanttDashboard = () => {
             <Card className="w-full h-full">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <ChartBarHorizontal className="h-5 w-5" />
+                  <BarChartHorizontal className="h-5 w-5" />
                   Team Workload
                 </CardTitle>
                 <CardDescription>
