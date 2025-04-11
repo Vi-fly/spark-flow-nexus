@@ -3,20 +3,13 @@ import { databaseConnector } from './databaseConnector';
 import { DiscussionPost, DiscussionComment } from '@/types/discussion.types';
 
 /**
- * Service for managing discussion data with MongoDB
+ * Service for managing discussion data with database
  */
 export class DiscussionService {
   // Fetch all posts
   static async getPosts(): Promise<DiscussionPost[]> {
     try {
       const connection = await databaseConnector.getConnection();
-      
-      if (connection.type !== 'mongodb') {
-        throw new Error('MongoDB connection required for discussions');
-      }
-      
-      // In a real implementation, this would query MongoDB
-      // Example: return await db.collection('posts').find({}).toArray();
       
       // For demo, return empty array as we're using mock data in UI
       return [];
@@ -31,13 +24,6 @@ export class DiscussionService {
     try {
       const connection = await databaseConnector.getConnection();
       
-      if (connection.type !== 'mongodb') {
-        throw new Error('MongoDB connection required for discussions');
-      }
-      
-      // In a real implementation, this would query MongoDB
-      // Example: return await db.collection('comments').find({ post_id: postId }).toArray();
-      
       // For demo, return empty array as we're using mock data in UI
       return [];
     } catch (error) {
@@ -50,21 +36,6 @@ export class DiscussionService {
   static async createPost(post: Omit<DiscussionPost, 'id' | 'created_at' | 'updated_at'>): Promise<DiscussionPost | null> {
     try {
       const connection = await databaseConnector.getConnection();
-      
-      if (connection.type !== 'mongodb') {
-        throw new Error('MongoDB connection required for discussions');
-      }
-      
-      // In a real implementation, this would insert into MongoDB
-      // Example:
-      // const newPost = {
-      //   ...post,
-      //   id: new ObjectId().toString(),
-      //   created_at: new Date().toISOString(),
-      //   updated_at: new Date().toISOString()
-      // };
-      // await db.collection('posts').insertOne(newPost);
-      // return newPost;
       
       // For demo, return null as we're managing state in the component
       return null;
@@ -80,21 +51,6 @@ export class DiscussionService {
   ): Promise<DiscussionComment | null> {
     try {
       const connection = await databaseConnector.getConnection();
-      
-      if (connection.type !== 'mongodb') {
-        throw new Error('MongoDB connection required for discussions');
-      }
-      
-      // In a real implementation, this would insert into MongoDB
-      // Example:
-      // const newComment = {
-      //   ...comment,
-      //   id: new ObjectId().toString(),
-      //   created_at: new Date().toISOString(),
-      //   updated_at: new Date().toISOString()
-      // };
-      // await db.collection('comments').insertOne(newComment);
-      // return newComment;
       
       // For demo, return null as we're managing state in the component
       return null;
@@ -113,17 +69,6 @@ export class DiscussionService {
     try {
       const connection = await databaseConnector.getConnection();
       
-      if (connection.type !== 'mongodb') {
-        throw new Error('MongoDB connection required for discussions');
-      }
-      
-      // In a real implementation, this would update MongoDB
-      // Example:
-      // await db.collection('posts').updateOne(
-      //   { id: postId },
-      //   { $set: { upvotes, downvotes, updated_at: new Date().toISOString() } }
-      // );
-      
       return true;
     } catch (error) {
       console.error(`Error updating votes for post ${postId}:`, error);
@@ -140,21 +85,64 @@ export class DiscussionService {
     try {
       const connection = await databaseConnector.getConnection();
       
-      if (connection.type !== 'mongodb') {
-        throw new Error('MongoDB connection required for discussions');
-      }
-      
-      // In a real implementation, this would update MongoDB
-      // Example:
-      // await db.collection('comments').updateOne(
-      //   { id: commentId },
-      //   { $set: { upvotes, downvotes, updated_at: new Date().toISOString() } }
-      // );
-      
       return true;
     } catch (error) {
       console.error(`Error updating votes for comment ${commentId}:`, error);
       return false;
+    }
+  }
+
+  // Search posts by query
+  static async searchPosts(query: string): Promise<DiscussionPost[]> {
+    try {
+      const connection = await databaseConnector.getConnection();
+      
+      // For demo, return empty array
+      return [];
+    } catch (error) {
+      console.error(`Error searching posts with query "${query}":`, error);
+      return [];
+    }
+  }
+
+  // Filter posts by tags
+  static async filterPostsByTags(tags: string[]): Promise<DiscussionPost[]> {
+    try {
+      const connection = await databaseConnector.getConnection();
+      
+      // For demo, return empty array
+      return [];
+    } catch (error) {
+      console.error(`Error filtering posts by tags:`, error);
+      return [];
+    }
+  }
+
+  // Get post statistics
+  static async getPostStatistics(): Promise<{
+    totalPosts: number;
+    totalComments: number;
+    activeUsers: number;
+    popularTags: string[];
+  }> {
+    try {
+      const connection = await databaseConnector.getConnection();
+      
+      // For demo, return mock statistics
+      return {
+        totalPosts: 0,
+        totalComments: 0,
+        activeUsers: 0,
+        popularTags: []
+      };
+    } catch (error) {
+      console.error(`Error getting post statistics:`, error);
+      return {
+        totalPosts: 0,
+        totalComments: 0,
+        activeUsers: 0,
+        popularTags: []
+      };
     }
   }
 }

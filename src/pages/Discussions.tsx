@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { databaseConnector } from '@/utils/databaseConnector';
 import { DiscussionPost, DiscussionComment } from '@/types/discussion.types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +22,9 @@ import {
   Tag,
   Plus,
   Send,
-  PenSquare
+  PenSquare,
+  Search,
+  Filter as FilterIcon
 } from 'lucide-react';
 
 const Discussions = () => {
@@ -35,65 +36,18 @@ const Discussions = () => {
   const [newPostContent, setNewPostContent] = useState('');
   const [newCommentContent, setNewCommentContent] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState('hot');
-  const [isConnected, setIsConnected] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [showFloatingButton, setShowFloatingButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const availableTags = ['Question', 'Discussion', 'Announcement', 'Help', 'Project', 'Bug', 'Feature'];
 
   useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        if (databaseConnector.getCurrentConnection() !== 'mongodb') {
-          databaseConnector.configureMongoDb('mongodb://localhost:27017', 'discussions_db');
-        }
-        
-        const connected = await databaseConnector.testConnection();
-        setIsConnected(connected);
-        
-        if (connected) {
-          fetchPosts();
-        } else {
-          toast({
-            title: "Database Connection Failed",
-            description: "Could not connect to MongoDB. Using demo data instead.",
-            variant: "destructive"
-          });
-          loadDemoData();
-        }
-      } catch (error) {
-        console.error('Error connecting to database:', error);
-        toast({
-          title: "Connection Error",
-          description: "Failed to connect to the database. Using demo data.",
-          variant: "destructive"
-        });
-        loadDemoData();
-      }
-    };
-    
-    checkConnection();
-  }, [toast]);
-
-  const fetchPosts = async () => {
-    try {
-      loadDemoData();
-      
-      toast({
-        title: "Connected to MongoDB",
-        description: "Successfully fetched discussion data.",
-      });
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-      toast({
-        title: "Data Fetch Error",
-        description: "Could not fetch posts from the database.",
-        variant: "destructive"
-      });
-    }
-  };
+    loadDemoData();
+  }, []);
 
   const loadDemoData = () => {
     const demoUser = user?.email?.split('@')[0] || 'anonymous';
@@ -130,6 +84,28 @@ const Discussions = () => {
         upvotes: 28,
         downvotes: 1,
         tags: ['Project', 'Showcase'],
+        created_at: currentDate,
+        updated_at: currentDate
+      },
+      {
+        id: '4',
+        user_id: 'user3',
+        title: 'Best Practices for React Components',
+        content: 'I wanted to share some best practices I\'ve learned for creating reusable React components...',
+        upvotes: 35,
+        downvotes: 3,
+        tags: ['React', 'Frontend', 'Tips'],
+        created_at: currentDate,
+        updated_at: currentDate
+      },
+      {
+        id: '5',
+        user_id: 'user4',
+        title: 'Introducing New Project Management Features',
+        content: 'Our team has just released new project management features including Gantt charts and resource allocation tools!',
+        upvotes: 22,
+        downvotes: 0,
+        tags: ['Announcement', 'Feature'],
         created_at: currentDate,
         updated_at: currentDate
       }
@@ -316,10 +292,23 @@ const Discussions = () => {
     setSelectedTags(selectedTags.filter(t => t !== tag));
   };
 
-  const filteredPosts = selectedTags.length > 0
-    ? posts.filter(post => selectedTags.some(tag => post.tags.includes(tag)))
-    : posts;
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const filteredPosts = posts.filter(post => {
+    const matchesSearch = searchQuery 
+      ? post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        post.content.toLowerCase().includes(searchQuery.toLowerCase())
+      : true;
     
+    const matchesTags = selectedTags.length > 0
+      ? selectedTags.some(tag => post.tags.includes(tag))
+      : true;
+    
+    return matchesSearch && matchesTags;
+  });
+  
   const sortedPosts = [...filteredPosts].sort((a, b) => {
     switch (activeTab) {
       case 'hot':
@@ -358,20 +347,6 @@ const Discussions = () => {
           <p className="text-muted-foreground">
             Join the conversation and share your thoughts with the community
           </p>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          {isConnected ? (
-            <div className="flex items-center">
-              <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
-              <span className="text-sm text-muted-foreground">Connected to MongoDB</span>
-            </div>
-          ) : (
-            <div className="flex items-center">
-              <span className="h-2 w-2 rounded-full bg-red-500 mr-2" />
-              <span className="text-sm text-muted-foreground">Using Demo Data</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -452,44 +427,155 @@ const Discussions = () => {
         </CardFooter>
       </Card>
 
-      <Tabs 
-        defaultValue="hot" 
-        value={activeTab} 
-        onValueChange={setActiveTab}
-        className="w-full"
-      >
-        <div className="flex justify-between items-center">
-          <TabsList>
-            <TabsTrigger value="hot" className="flex items-center">
-              <Heart className="h-4 w-4 mr-2" />
-              Hot
-            </TabsTrigger>
-            <TabsTrigger value="new" className="flex items-center">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              New
-            </TabsTrigger>
-            <TabsTrigger value="top" className="flex items-center">
-              <ArrowUp className="h-4 w-4 mr-2" />
-              Top
-            </TabsTrigger>
-          </TabsList>
+      <div className="flex flex-col md:flex-row gap-4 items-start">
+        <div className="w-full md:w-3/4">
+          <div className="flex items-center justify-between mb-4">
+            <Tabs 
+              defaultValue="hot" 
+              value={activeTab} 
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
+              <div className="flex justify-between items-center">
+                <TabsList>
+                  <TabsTrigger value="hot" className="flex items-center">
+                    <Heart className="h-4 w-4 mr-2" />
+                    Hot
+                  </TabsTrigger>
+                  <TabsTrigger value="new" className="flex items-center">
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    New
+                  </TabsTrigger>
+                  <TabsTrigger value="top" className="flex items-center">
+                    <ArrowUp className="h-4 w-4 mr-2" />
+                    Top
+                  </TabsTrigger>
+                </TabsList>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-2"
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                >
+                  <FilterIcon className="h-4 w-4" />
+                  Filters
+                </Button>
+              </div>
+            </Tabs>
+          </div>
+
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search discussions..."
+                value={searchQuery}
+                onChange={handleSearch}
+                className="pl-10"
+              />
+            </div>
+
+            {showAdvancedFilters && (
+              <Card className="mt-4 p-4 animate-fade-in">
+                <h3 className="font-medium mb-2">Filter by tags</h3>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {availableTags.map(tag => (
+                    <Button 
+                      key={tag} 
+                      variant={selectedTags.includes(tag) ? "default" : "outline"} 
+                      size="sm"
+                      onClick={() => {
+                        if (selectedTags.includes(tag)) {
+                          handleRemoveTag(tag);
+                        } else {
+                          setSelectedTags([...selectedTags, tag]);
+                        }
+                      }}
+                    >
+                      {tag}
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex justify-end">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setSelectedTags([])}
+                  >
+                    Clear filters
+                  </Button>
+                </div>
+              </Card>
+            )}
+          </div>
           
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filters
-          </Button>
+          <TabsContent value="hot" className="space-y-4 mt-4">
+            {renderPosts(sortedPosts)}
+          </TabsContent>
+          <TabsContent value="new" className="space-y-4 mt-4">
+            {renderPosts(sortedPosts)}
+          </TabsContent>
+          <TabsContent value="top" className="space-y-4 mt-4">
+            {renderPosts(sortedPosts)}
+          </TabsContent>
         </div>
-        
-        <TabsContent value="hot" className="space-y-4 mt-4">
-          {renderPosts(sortedPosts)}
-        </TabsContent>
-        <TabsContent value="new" className="space-y-4 mt-4">
-          {renderPosts(sortedPosts)}
-        </TabsContent>
-        <TabsContent value="top" className="space-y-4 mt-4">
-          {renderPosts(sortedPosts)}
-        </TabsContent>
-      </Tabs>
+
+        <div className="w-full md:w-1/4 sticky top-4">
+          <Card className="mb-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Discussion Stats</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Posts:</span>
+                  <span className="font-medium">{posts.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Comments:</span>
+                  <span className="font-medium">
+                    {Object.values(comments).reduce((total, commentArray) => total + commentArray.length, 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Active Users:</span>
+                  <span className="font-medium">
+                    {new Set([...posts.map(p => p.user_id), 
+                      ...Object.values(comments).flat().map(c => c.user_id)]).size}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Popular Tags</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {Array.from(new Set(posts.flatMap(p => p.tags)))
+                  .slice(0, 8)
+                  .map(tag => (
+                    <Button 
+                      key={tag} 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        if (!selectedTags.includes(tag)) {
+                          setSelectedTags([...selectedTags, tag]);
+                        }
+                      }}
+                    >
+                      {tag}
+                    </Button>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
       
       <div className={`fixed bottom-8 right-8 transition-all duration-300 ${showFloatingButton ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}`}>
         <div className="relative group">

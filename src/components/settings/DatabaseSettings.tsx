@@ -8,15 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Database, Server, Waves } from 'lucide-react';
+import { Database, Server, Waves, Download, Upload, RefreshCw } from 'lucide-react';
 
 export function DatabaseSettings() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>('supabase');
-  
-  // MongoDB settings
-  const [mongoUri, setMongoUri] = useState<string>('');
-  const [mongoDbName, setMongoDbName] = useState<string>('');
   
   // NeonDB settings
   const [neonConnectionString, setNeonConnectionString] = useState<string>('');
@@ -24,6 +20,8 @@ export function DatabaseSettings() {
   // Supabase settings
   const [supabaseUrl, setSupabaseUrl] = useState<string>('');
   const [supabaseKey, setSupabaseKey] = useState<string>('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   
   // Load saved connection settings
   useEffect(() => {
@@ -33,11 +31,6 @@ export function DatabaseSettings() {
     
     if (currentDb) {
       setActiveTab(currentDb);
-    }
-    
-    if (config.mongodb) {
-      setMongoUri(config.mongodb.uri);
-      setMongoDbName(config.mongodb.dbName);
     }
     
     if (config.neondb) {
@@ -63,23 +56,6 @@ export function DatabaseSettings() {
         variant: "destructive"
       });
     }
-  };
-
-  const saveMongoDbConfig = () => {
-    if (!mongoUri || !mongoDbName) {
-      toast({
-        title: "Validation Error",
-        description: "All MongoDB fields are required",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    databaseConnector.configureMongoDb(mongoUri, mongoDbName);
-    toast({
-      title: "MongoDB Configuration Saved",
-      description: "Your MongoDB connection settings have been saved."
-    });
   };
 
   const saveNeonDbConfig = () => {
@@ -116,6 +92,47 @@ export function DatabaseSettings() {
     });
   };
 
+  const handleImportData = () => {
+    setIsImporting(true);
+    
+    // Simulate import process
+    setTimeout(() => {
+      setIsImporting(false);
+      toast({
+        title: "Data Import Complete",
+        description: "Your data has been successfully imported."
+      });
+    }, 2000);
+  };
+
+  const handleExportData = () => {
+    setIsExporting(true);
+    
+    // Simulate export process
+    setTimeout(() => {
+      setIsExporting(false);
+      toast({
+        title: "Data Export Complete",
+        description: "Your data has been successfully exported."
+      });
+    }, 2000);
+  };
+
+  const handleDatabaseSync = () => {
+    toast({
+      title: "Database Synchronization",
+      description: "Synchronization process started. This may take a few minutes."
+    });
+    
+    // Simulate sync process
+    setTimeout(() => {
+      toast({
+        title: "Synchronization Complete",
+        description: "Database has been successfully synchronized."
+      });
+    }, 3000);
+  };
+
   return (
     <Card className="p-6 glass animate-fade-in">
       <h2 className="text-2xl font-bold mb-6 gradient-text">Database Configuration</h2>
@@ -126,14 +143,7 @@ export function DatabaseSettings() {
         onValueChange={setActiveTab}
         className="w-full"
       >
-        <TabsList className="grid grid-cols-3 mb-6">
-          <TabsTrigger 
-            value="mongodb" 
-            className="flex items-center gap-2 animate-slide-in hover-scale"
-          >
-            <Server className="h-4 w-4" />
-            <span>MongoDB</span>
-          </TabsTrigger>
+        <TabsList className="grid grid-cols-2 mb-6">
           <TabsTrigger 
             value="neondb" 
             className="flex items-center gap-2 animate-slide-in hover-scale"
@@ -149,35 +159,6 @@ export function DatabaseSettings() {
             <span>Supabase</span>
           </TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="mongodb" className="animate-fade-in">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="mongoUri">MongoDB URI</Label>
-              <Input 
-                id="mongoUri"
-                placeholder="mongodb://username:password@host:port/database" 
-                value={mongoUri}
-                onChange={(e) => setMongoUri(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="mongoDbName">Database Name</Label>
-              <Input 
-                id="mongoDbName"
-                placeholder="task_manager" 
-                value={mongoDbName}
-                onChange={(e) => setMongoDbName(e.target.value)}
-              />
-            </div>
-            
-            <div className="flex space-x-4 mt-6">
-              <Button onClick={saveMongoDbConfig} className="hover-scale">Save Settings</Button>
-              <Button onClick={testConnection} variant="outline" className="hover-scale">Test Connection</Button>
-            </div>
-          </div>
-        </TabsContent>
         
         <TabsContent value="neondb" className="animate-fade-in">
           <div className="space-y-4">
@@ -228,6 +209,56 @@ export function DatabaseSettings() {
           </div>
         </TabsContent>
       </Tabs>
+      
+      <div className="mt-8 border-t pt-6">
+        <h3 className="text-xl font-semibold mb-4">Database Operations</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <Button 
+                variant="outline" 
+                className="w-12 h-12 rounded-full mb-3"
+                onClick={handleImportData}
+                disabled={isImporting}
+              >
+                {isImporting ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+              </Button>
+              <h4 className="font-medium">Import Data</h4>
+              <p className="text-sm text-muted-foreground mt-1">Import data from file</p>
+            </div>
+          </Card>
+          
+          <Card className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <Button 
+                variant="outline" 
+                className="w-12 h-12 rounded-full mb-3"
+                onClick={handleExportData}
+                disabled={isExporting}
+              >
+                {isExporting ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+              </Button>
+              <h4 className="font-medium">Export Data</h4>
+              <p className="text-sm text-muted-foreground mt-1">Export data to file</p>
+            </div>
+          </Card>
+          
+          <Card className="p-4">
+            <div className="flex flex-col items-center text-center">
+              <Button 
+                variant="outline" 
+                className="w-12 h-12 rounded-full mb-3"
+                onClick={handleDatabaseSync}
+              >
+                <RefreshCw className="h-5 w-5" />
+              </Button>
+              <h4 className="font-medium">Sync Database</h4>
+              <p className="text-sm text-muted-foreground mt-1">Synchronize with remote</p>
+            </div>
+          </Card>
+        </div>
+      </div>
       
       <div className="mt-8 p-4 bg-muted rounded-lg border border-dashed animate-fade-in">
         <div className="flex items-center justify-between mb-2">

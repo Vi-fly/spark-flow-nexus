@@ -1,16 +1,12 @@
 
 /**
  * Database Connector Utility
- * Provides functions to connect to MongoDB or NeonDB
+ * Provides functions to connect to NeonDB or Supabase
  */
 
-type DatabaseType = 'mongodb' | 'neondb' | 'supabase';
+type DatabaseType = 'neondb' | 'supabase';
 
 type ConnectionConfig = {
-  mongodb?: {
-    uri: string;
-    dbName: string;
-  };
   neondb?: {
     connectionString: string;
   };
@@ -42,18 +38,6 @@ export class DatabaseConnector {
       DatabaseConnector.instance = new DatabaseConnector();
     }
     return DatabaseConnector.instance;
-  }
-
-  /**
-   * Configure MongoDB connection
-   */
-  public configureMongoDb(uri: string, dbName: string): void {
-    console.log('Configuring MongoDB connection...');
-    this.config.mongodb = { uri, dbName };
-    this.currentConnection = 'mongodb';
-    this.connectionStatus = 'disconnected'; // Reset status
-    this.lastError = null;
-    this.saveConnectionConfig();
   }
 
   /**
@@ -149,14 +133,6 @@ export class DatabaseConnector {
 
     try {
       switch (this.currentConnection) {
-        case 'mongodb':
-          console.log('Testing MongoDB connection...');
-          if (!this.config.mongodb?.uri) {
-            throw new Error('MongoDB URI is not configured');
-          }
-          // In a production app, we would actually try to connect
-          this.connectionStatus = 'connected';
-          return true;
         case 'neondb':
           console.log('Testing NeonDB connection...');
           if (!this.config.neondb?.connectionString) {
@@ -204,6 +180,37 @@ export class DatabaseConnector {
       type: this.currentConnection,
       isConnected: this.connectionStatus === 'connected'
     };
+  }
+
+  /**
+   * Export database to JSON
+   */
+  public async exportToJson(): Promise<string> {
+    // This is a mock implementation
+    return JSON.stringify({
+      exportedAt: new Date().toISOString(),
+      database: this.currentConnection,
+      tables: [
+        { name: "users", records: 42 },
+        { name: "tasks", records: 156 },
+        { name: "discussions", records: 28 }
+      ]
+    });
+  }
+
+  /**
+   * Import data from JSON
+   */
+  public async importFromJson(jsonData: string): Promise<boolean> {
+    try {
+      // This is a mock implementation
+      const data = JSON.parse(jsonData);
+      console.log("Importing data:", data);
+      return true;
+    } catch (error) {
+      console.error("Failed to import data:", error);
+      return false;
+    }
   }
 }
 

@@ -1,528 +1,622 @@
 
 import React, { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
 import { databaseConnector } from '@/utils/databaseConnector';
-import {
-  Database,
-  Table as TableIcon,
-  Search,
-  RefreshCw,
-  Download,
-  Filter,
-  FileSpreadsheet,
-  Eye,
-  HelpCircle
-} from 'lucide-react';
 import { 
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger
-} from '@/components/ui/hover-card';
+  Database, 
+  Table as TableIcon, 
+  FileDown, 
+  FileUp, 
+  Filter, 
+  MoreHorizontal, 
+  Search, 
+  RefreshCw, 
+  Download,
+  ChevronFirst,
+  ChevronLast,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  List,
+  BarChart3,
+  ArrowUpDown
+} from 'lucide-react';
+
+// Sample data structure for the demo
+interface TableInfo {
+  name: string;
+  count: number;
+  lastUpdated: string;
+  fields: string[];
+}
+
+interface TableData {
+  [key: string]: any[];
+}
 
 const Data = () => {
   const { toast } = useToast();
-  const [isConnected, setIsConnected] = useState(false);
-  const [collections, setCollections] = useState<string[]>([]);
-  const [activeTable, setActiveTable] = useState<string>('');
-  const [tableData, setTableData] = useState<any[]>([]);
-  const [tableColumns, setTableColumns] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [tables, setTables] = useState<TableInfo[]>([]);
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [tableData, setTableData] = useState<TableData>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterField, setFilterField] = useState<string>('');
   const [filterValue, setFilterValue] = useState('');
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortField, setSortField] = useState<string>('');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [viewMode, setViewMode] = useState<'table' | 'grid' | 'chart'>('table');
   
+  // Generate fake data for demo purposes
   useEffect(() => {
-    checkConnection();
-  }, []);
-  
-  const checkConnection = async () => {
-    try {
+    const loadData = async () => {
       setIsLoading(true);
-      // Check if connected to MongoDB
-      if (databaseConnector.getCurrentConnection() !== 'mongodb') {
-        databaseConnector.configureMongoDb('mongodb://localhost:27017', 'database');
-      }
       
-      const connected = await databaseConnector.testConnection();
-      setIsConnected(connected);
-      
-      if (connected) {
-        // Would fetch collections from MongoDB in a real application
-        fetchDemoCollections();
+      try {
+        // Generate mock tables info
+        const mockTables: TableInfo[] = [
+          { 
+            name: 'tasks', 
+            count: 87, 
+            lastUpdated: '2025-04-10T15:30:00Z',
+            fields: ['id', 'title', 'description', 'status', 'priority', 'assigned_to', 'created_at']
+          },
+          { 
+            name: 'contacts', 
+            count: 42, 
+            lastUpdated: '2025-04-09T12:15:00Z',
+            fields: ['id', 'name', 'email', 'phone', 'company', 'role', 'created_at']
+          },
+          { 
+            name: 'discussions', 
+            count: 28, 
+            lastUpdated: '2025-04-11T09:45:00Z',
+            fields: ['id', 'title', 'content', 'user_id', 'upvotes', 'downvotes', 'created_at']
+          },
+          { 
+            name: 'users', 
+            count: 15, 
+            lastUpdated: '2025-04-08T14:20:00Z',
+            fields: ['id', 'name', 'email', 'role', 'last_login', 'created_at']
+          },
+          { 
+            name: 'projects', 
+            count: 9, 
+            lastUpdated: '2025-04-07T16:50:00Z',
+            fields: ['id', 'name', 'description', 'status', 'start_date', 'end_date', 'created_at']
+          }
+        ];
+        
+        setTables(mockTables);
+        
+        // Generate mock data for each table
+        const mockData: TableData = {};
+        
+        // Tasks data
+        mockData.tasks = Array(87).fill(0).map((_, i) => ({
+          id: `task-${i + 1}`,
+          title: `Task ${i + 1}`,
+          description: `Description for task ${i + 1}`,
+          status: ['todo', 'in-progress', 'done', 'blocked'][Math.floor(Math.random() * 4)],
+          priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+          assigned_to: `user-${Math.floor(Math.random() * 15) + 1}`,
+          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+        }));
+        
+        // Contacts data
+        mockData.contacts = Array(42).fill(0).map((_, i) => ({
+          id: `contact-${i + 1}`,
+          name: `Contact ${i + 1}`,
+          email: `contact${i + 1}@example.com`,
+          phone: `+1-${Math.floor(Math.random() * 1000)}-${Math.floor(Math.random() * 1000)}-${Math.floor(Math.random() * 10000)}`,
+          company: `Company ${Math.floor(Math.random() * 10) + 1}`,
+          role: ['Manager', 'Developer', 'Designer', 'CEO', 'CTO'][Math.floor(Math.random() * 5)],
+          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+        }));
+        
+        // Discussions data
+        mockData.discussions = Array(28).fill(0).map((_, i) => ({
+          id: `discussion-${i + 1}`,
+          title: `Discussion ${i + 1}`,
+          content: `Content for discussion ${i + 1}`,
+          user_id: `user-${Math.floor(Math.random() * 15) + 1}`,
+          upvotes: Math.floor(Math.random() * 50),
+          downvotes: Math.floor(Math.random() * 10),
+          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+        }));
+        
+        // Users data
+        mockData.users = Array(15).fill(0).map((_, i) => ({
+          id: `user-${i + 1}`,
+          name: `User ${i + 1}`,
+          email: `user${i + 1}@example.com`,
+          role: ['admin', 'user', 'manager'][Math.floor(Math.random() * 3)],
+          last_login: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+          created_at: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString()
+        }));
+        
+        // Projects data
+        mockData.projects = Array(9).fill(0).map((_, i) => ({
+          id: `project-${i + 1}`,
+          name: `Project ${i + 1}`,
+          description: `Description for project ${i + 1}`,
+          status: ['planning', 'active', 'completed', 'on-hold'][Math.floor(Math.random() * 4)],
+          start_date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString(),
+          end_date: new Date(Date.now() + Math.random() * 180 * 24 * 60 * 60 * 1000).toISOString(),
+          created_at: new Date(Date.now() - Math.random() * 120 * 24 * 60 * 60 * 1000).toISOString()
+        }));
+        
+        setTableData(mockData);
+        
+        if (mockTables.length > 0) {
+          setSelectedTable(mockTables[0].name);
+        }
+      } catch (error) {
+        console.error("Error loading data:", error);
         toast({
-          title: "Database Connected",
-          description: "Successfully connected to the database.",
-        });
-      } else {
-        // Load demo data
-        fetchDemoCollections();
-        toast({
-          title: "Using Demo Data",
-          description: "Could not connect to a real database. Using demo data.",
+          title: "Error Loading Data",
+          description: "There was a problem loading the database data.",
           variant: "destructive"
         });
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error connecting to database:', error);
-      fetchDemoCollections();
+    };
+    
+    loadData();
+  }, [toast]);
+  
+  const handleRefreshData = () => {
+    setIsLoading(true);
+    
+    // Simulate data refresh
+    setTimeout(() => {
+      setIsLoading(false);
       toast({
-        title: "Connection Error",
-        description: "Failed to connect to the database. Using demo data.",
+        title: "Data Refreshed",
+        description: "The table data has been successfully refreshed."
+      });
+    }, 1000);
+  };
+  
+  const handleExportData = () => {
+    if (!selectedTable) return;
+    
+    try {
+      const dataStr = JSON.stringify(tableData[selectedTable], null, 2);
+      const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+      
+      const exportFileDefaultName = `${selectedTable}_export_${new Date().toISOString().split('T')[0]}.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+      
+      toast({
+        title: "Export Successful",
+        description: `Data from ${selectedTable} has been exported.`
+      });
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      toast({
+        title: "Export Failed",
+        description: "There was a problem exporting the data.",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
   
-  const fetchDemoCollections = () => {
-    // Demo collections
-    const demoCollections = ['tasks', 'users', 'projects', 'contacts', 'discussions', 'comments'];
-    setCollections(demoCollections);
-    
-    if (demoCollections.length > 0) {
-      // Select first collection by default
-      setActiveTable(demoCollections[0]);
-      fetchTableData(demoCollections[0]);
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page on search
+  };
+  
+  const handleFilterChange = (field: string, value: string) => {
+    setFilterField(field);
+    setFilterValue(value);
+    setCurrentPage(1); // Reset to first page on filter change
+  };
+  
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
     }
   };
   
-  const fetchTableData = (collectionName: string) => {
-    setIsLoading(true);
-    setActiveTable(collectionName);
-    
-    // Generate demo data based on the collection
-    let data: any[] = [];
-    let columns: string[] = [];
-    
-    switch (collectionName) {
-      case 'tasks':
-        columns = ['id', 'title', 'status', 'priority', 'assigned_to', 'deadline'];
-        data = Array.from({ length: 25 }, (_, i) => ({
-          id: `task-${i+1}`,
-          title: `Task ${i+1}`,
-          status: ['todo', 'in-progress', 'done'][Math.floor(Math.random() * 3)],
-          priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-          assigned_to: ['John', 'Sarah', 'Mike', 'Lisa'][Math.floor(Math.random() * 4)],
-          deadline: new Date(Date.now() + Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        }));
-        break;
-        
-      case 'users':
-        columns = ['id', 'name', 'email', 'role', 'created_at'];
-        data = Array.from({ length: 15 }, (_, i) => ({
-          id: `user-${i+1}`,
-          name: ['John Doe', 'Jane Smith', 'Mike Johnson', 'Lisa Brown', 'Alex Wong'][i % 5],
-          email: `user${i+1}@example.com`,
-          role: ['admin', 'editor', 'viewer'][Math.floor(Math.random() * 3)],
-          created_at: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-        }));
-        break;
-        
-      case 'projects':
-        columns = ['id', 'name', 'status', 'start_date', 'end_date', 'owner'];
-        data = Array.from({ length: 10 }, (_, i) => ({
-          id: `proj-${i+1}`,
-          name: `Project ${i+1}`,
-          status: ['planning', 'in-progress', 'completed', 'on-hold'][Math.floor(Math.random() * 4)],
-          start_date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          end_date: new Date(Date.now() + Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          owner: ['John', 'Sarah', 'Mike', 'Lisa'][Math.floor(Math.random() * 4)]
-        }));
-        break;
-        
-      case 'contacts':
-        columns = ['id', 'name', 'email', 'phone', 'company', 'role'];
-        data = Array.from({ length: 20 }, (_, i) => ({
-          id: `contact-${i+1}`,
-          name: ['John Doe', 'Jane Smith', 'Mike Johnson', 'Lisa Brown', 'Alex Wong'][i % 5],
-          email: `contact${i+1}@example.com`,
-          phone: `+1 (555) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
-          company: ['Acme Inc', 'Globex Corp', 'Initech', 'Umbrella Corp', 'Stark Industries'][i % 5],
-          role: ['CEO', 'Manager', 'Developer', 'Designer', 'Marketing'][i % 5]
-        }));
-        break;
-        
-      case 'discussions':
-        columns = ['id', 'title', 'author', 'created_at', 'upvotes', 'comments'];
-        data = Array.from({ length: 15 }, (_, i) => ({
-          id: `disc-${i+1}`,
-          title: `Discussion topic ${i+1}`,
-          author: ['John', 'Sarah', 'Mike', 'Lisa'][Math.floor(Math.random() * 4)],
-          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          upvotes: Math.floor(Math.random() * 50),
-          comments: Math.floor(Math.random() * 20)
-        }));
-        break;
-        
-      case 'comments':
-        columns = ['id', 'discussion_id', 'author', 'content', 'created_at', 'upvotes'];
-        data = Array.from({ length: 30 }, (_, i) => ({
-          id: `comment-${i+1}`,
-          discussion_id: `disc-${Math.floor(Math.random() * 15) + 1}`,
-          author: ['John', 'Sarah', 'Mike', 'Lisa'][Math.floor(Math.random() * 4)],
-          content: `This is comment ${i+1}. It contains some text about the discussion.`,
-          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          upvotes: Math.floor(Math.random() * 10)
-        }));
-        break;
-        
-      default:
-        columns = ['id', 'name', 'value'];
-        data = Array.from({ length: 5 }, (_, i) => ({
-          id: `item-${i+1}`,
-          name: `Demo Item ${i+1}`,
-          value: `Value ${i+1}`
-        }));
+  const currentTableInfo = tables.find(t => t.name === selectedTable);
+  const fields = currentTableInfo?.fields || [];
+  
+  // Apply filtering, sorting, and pagination
+  const filteredData = selectedTable ? tableData[selectedTable]?.filter(item => {
+    // Search across all fields
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      return Object.values(item).some(val => 
+        val && val.toString().toLowerCase().includes(searchLower)
+      );
     }
     
-    setTableColumns(columns);
-    setTableData(data);
-    setIsLoading(false);
-  };
-  
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'done':
-      case 'completed':
-        return "bg-green-100 text-green-800";
-      case 'in-progress':
-        return "bg-blue-100 text-blue-800";
-      case 'todo':
-      case 'planning':
-        return "bg-yellow-100 text-yellow-800";
-      case 'on-hold':
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+    // Apply field-specific filter
+    if (filterField && filterValue) {
+      const itemValue = item[filterField];
+      return itemValue && itemValue.toString().toLowerCase().includes(filterValue.toLowerCase());
     }
-  };
+    
+    return true;
+  }) : [];
   
-  const handleExportCSV = () => {
-    const headers = tableColumns.join(',');
-    const rows = tableData.map(row => 
-      tableColumns.map(col => 
-        typeof row[col] === 'string' && row[col].includes(',') 
-          ? `"${row[col]}"` 
-          : row[col]
-      ).join(',')
-    ).join('\n');
+  // Apply sorting
+  const sortedData = [...filteredData].sort((a, b) => {
+    if (!sortField) return 0;
     
-    const csvContent = `${headers}\n${rows}`;
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${activeTable}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const aValue = a[sortField];
+    const bValue = b[sortField];
     
-    toast({
-      title: "Export Successful",
-      description: `Exported ${activeTable} as CSV file.`,
-    });
-  };
-  
-  // Filter the table data
-  const filteredData = tableData.filter(row => {
-    if (!filterValue) return true;
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return sortDirection === 'asc' 
+        ? aValue.localeCompare(bValue) 
+        : bValue.localeCompare(aValue);
+    }
     
-    return tableColumns.some(column => {
-      const value = row[column];
-      if (value === null || value === undefined) return false;
-      return String(value).toLowerCase().includes(filterValue.toLowerCase());
-    });
+    return sortDirection === 'asc' 
+      ? (aValue > bValue ? 1 : -1) 
+      : (bValue > aValue ? 1 : -1);
   });
   
-  // Pagination
-  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
+  // Apply pagination
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+  const paginatedData = sortedData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
   
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto p-6 space-y-6 animate-fade-in">
+      <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold mb-2">Data Explorer</h1>
-          <p className="text-muted-foreground">
-            Browse and analyze your application data
-          </p>
+          <p className="text-muted-foreground">Browse, filter, and analyze your database tables</p>
         </div>
-        
         <div className="flex items-center space-x-2">
-          {isConnected ? (
-            <div className="flex items-center">
-              <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
-              <span className="text-sm text-muted-foreground">Connected to Database</span>
-            </div>
-          ) : (
-            <div className="flex items-center">
-              <span className="h-2 w-2 rounded-full bg-red-500 mr-2" />
-              <span className="text-sm text-muted-foreground">Using Demo Data</span>
-            </div>
-          )}
-          
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={checkConnection}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <Button variant="outline" size="sm" onClick={handleRefreshData} disabled={isLoading}>
+            {isLoading ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            <span className="ml-2">Refresh</span>
           </Button>
         </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Sidebar with collections */}
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5" />
-              Collections
-            </CardTitle>
-            <CardDescription>
-              Select a table to view its data
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {collections.map(collection => (
-                <Button
-                  key={collection}
-                  variant={activeTable === collection ? "default" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => fetchTableData(collection)}
-                >
-                  <TableIcon className="h-4 w-4 mr-2" />
-                  {collection}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Main content with table data */}
-        <Card className="md:col-span-3">
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <CardTitle className="flex items-center gap-2">
-                <TableIcon className="h-5 w-5" />
-                {activeTable}
-              </CardTitle>
-              
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search..."
-                    className="pl-8 w-[200px]"
-                    value={filterValue}
-                    onChange={(e) => setFilterValue(e.target.value)}
-                  />
+        <div className="md:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">Tables</CardTitle>
+              <CardDescription>Select a table to view data</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="space-y-1">
+                {tables.map(table => (
+                  <Button
+                    key={table.name}
+                    variant={selectedTable === table.name ? "default" : "ghost"}
+                    className="w-full justify-start text-left pl-6 font-normal"
+                    onClick={() => {
+                      setSelectedTable(table.name);
+                      setFilterField('');
+                      setFilterValue('');
+                      setSortField('');
+                      setSortDirection('asc');
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <TableIcon className="h-4 w-4 mr-2" />
+                    <span>{table.name}</span>
+                    <span className="ml-auto text-xs text-muted-foreground">{table.count}</span>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {currentTableInfo && (
+            <Card className="mt-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xl">Table Info</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Records:</span>
+                    <span className="font-medium">{currentTableInfo.count}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Last Updated:</span>
+                    <span className="font-medium">{new Date(currentTableInfo.lastUpdated).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Fields:</span>
+                    <span className="font-medium">{currentTableInfo.fields.length}</span>
+                  </div>
                 </div>
                 
-                <HoverCard>
-                  <HoverCardTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <HelpCircle className="h-4 w-4" />
-                    </Button>
-                  </HoverCardTrigger>
-                  <HoverCardContent className="w-80">
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Data Explorer Help</h4>
-                      <p className="text-sm">
-                        Browse tables and their data. Use the search box to filter results and export to CSV.
-                      </p>
-                      <ul className="text-sm list-disc pl-4 space-y-1">
-                        <li>Click on a collection name to view its data</li>
-                        <li>Use the search box to filter across all columns</li>
-                        <li>Export the visible data to CSV using the export button</li>
-                      </ul>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-                
-                <Button variant="outline" onClick={handleExportCSV}>
-                  <Download className="h-4 w-4 mr-2" />
-                  Export CSV
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-              </div>
-            ) : tableData.length === 0 ? (
-              <div className="text-center py-8">
-                <TableIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-2 text-lg font-medium">No data available</h3>
-                <p className="text-sm text-muted-foreground">
-                  Select a collection or check your database connection
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {tableColumns.map(column => (
-                        <TableHead key={column} className="whitespace-nowrap">
-                          {column.replace('_', ' ')}
-                        </TableHead>
-                      ))}
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedData.map((row, rowIndex) => (
-                      <TableRow key={rowIndex}>
-                        {tableColumns.map(column => (
-                          <TableCell key={column} className="whitespace-nowrap">
-                            {column === 'status' ? (
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(row[column])}`}>
-                                {row[column]}
-                              </span>
-                            ) : (
-                              String(row[column])
-                            )}
-                          </TableCell>
-                        ))}
-                        <TableCell>
-                          <Button variant="ghost" size="icon">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                
-                {/* Pagination */}
-                <div className="flex items-center justify-between mt-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Showing {Math.min(startIndex + 1, filteredData.length)} to {Math.min(startIndex + rowsPerPage, filteredData.length)} of {filteredData.length} entries
-                    </span>
-                    
-                    <Select
-                      value={rowsPerPage.toString()}
-                      onValueChange={(value) => {
-                        setRowsPerPage(Number(value));
-                        setCurrentPage(1);
-                      }}
+                <div className="mt-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={handleExportData}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Table
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+        
+        <div className="md:col-span-3">
+          {selectedTable ? (
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-xl capitalize">{selectedTable}</CardTitle>
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant={viewMode === 'table' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setViewMode('table')}
                     >
-                      <SelectTrigger className="w-[100px]">
-                        <SelectValue placeholder="10 per page" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">5 per page</SelectItem>
-                        <SelectItem value="10">10 per page</SelectItem>
-                        <SelectItem value="25">25 per page</SelectItem>
-                        <SelectItem value="50">50 per page</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <List className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant={viewMode === 'grid' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setViewMode('grid')}
+                    >
+                      <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant={viewMode === 'chart' ? 'default' : 'outline'} 
+                      size="sm"
+                      onClick={() => setViewMode('chart')}
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder={`Search in ${selectedTable}...`}
+                      value={searchQuery}
+                      onChange={handleSearch}
+                      className="pl-10"
+                    />
                   </div>
                   
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  <div className="flex gap-2">
+                    <Select
+                      value={filterField}
+                      onValueChange={(value) => handleFilterChange(value, filterValue)}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </Button>
+                      <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filter by field" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {fields.map(field => (
+                          <SelectItem key={field} value={field}>
+                            {field}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     
-                    <div className="flex items-center gap-1 mx-2">
-                      {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                        const pageNumber = i + 1;
-                        // Show pages around current page
-                        let pageToShow = pageNumber;
-                        if (totalPages > 5 && currentPage > 3) {
-                          pageToShow = currentPage - 3 + i;
-                          if (pageToShow > totalPages) {
-                            pageToShow = totalPages - (4 - i);
-                          }
-                        }
-                        
-                        return (
-                          <Button
-                            key={pageToShow}
-                            variant={currentPage === pageToShow ? "default" : "outline"}
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setCurrentPage(pageToShow)}
-                          >
-                            {pageToShow}
-                          </Button>
-                        );
-                      })}
-                      
-                      {totalPages > 5 && currentPage < totalPages - 2 && (
-                        <>
-                          {currentPage < totalPages - 3 && <span className="mx-1">...</span>}
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setCurrentPage(totalPages)}
-                          >
-                            {totalPages}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      disabled={currentPage === totalPages || totalPages === 0}
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </Button>
+                    {filterField && (
+                      <Input
+                        placeholder="Filter value..."
+                        value={filterValue}
+                        onChange={(e) => handleFilterChange(filterField, e.target.value)}
+                        className="w-[180px]"
+                      />
+                    )}
                   </div>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                
+                {viewMode === 'table' && (
+                  <>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            {fields.map(field => (
+                              <TableHead 
+                                key={field}
+                                className="cursor-pointer"
+                                onClick={() => handleSort(field)}
+                              >
+                                <div className="flex items-center">
+                                  {field}
+                                  {sortField === field && (
+                                    <ArrowUpDown className={`ml-2 h-4 w-4 ${sortDirection === 'desc' ? 'rotate-180' : ''}`} />
+                                  )}
+                                </div>
+                              </TableHead>
+                            ))}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {isLoading ? (
+                            <TableRow>
+                              <TableCell colSpan={fields.length} className="text-center py-8">
+                                <RefreshCw className="h-6 w-6 animate-spin mx-auto" />
+                                <div className="mt-2 text-muted-foreground">Loading data...</div>
+                              </TableCell>
+                            </TableRow>
+                          ) : paginatedData.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={fields.length} className="text-center h-32">
+                                <Database className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                                <div className="text-muted-foreground">No data matches your search criteria</div>
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            paginatedData.map((row, index) => (
+                              <TableRow key={index}>
+                                {fields.map(field => (
+                                  <TableCell key={field}>
+                                    {row[field] !== undefined ? String(row[field]).substring(0, 50) : 'N/A'}
+                                  </TableCell>
+                                ))}
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {paginatedData.length} of {filteredData.length} results
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(1)}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronFirst className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm">
+                          Page {currentPage} of {totalPages || 1}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages || totalPages === 0}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(totalPages)}
+                          disabled={currentPage === totalPages || totalPages === 0}
+                        >
+                          <ChevronLast className="h-4 w-4" />
+                        </Button>
+                        <Select
+                          value={itemsPerPage.toString()}
+                          onValueChange={(value) => {
+                            setItemsPerPage(Number(value));
+                            setCurrentPage(1);
+                          }}
+                        >
+                          <SelectTrigger className="w-[100px]">
+                            <SelectValue placeholder="Rows" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[5, 10, 20, 50, 100].map(value => (
+                              <SelectItem key={value} value={value.toString()}>
+                                {value} rows
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {viewMode === 'grid' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {isLoading ? (
+                      <div className="col-span-full flex items-center justify-center h-64">
+                        <RefreshCw className="h-8 w-8 animate-spin" />
+                        <div className="ml-4 text-muted-foreground">Loading data...</div>
+                      </div>
+                    ) : paginatedData.length === 0 ? (
+                      <div className="col-span-full flex flex-col items-center justify-center h-64">
+                        <Database className="h-12 w-12 text-muted-foreground mb-4" />
+                        <div className="text-muted-foreground">No data matches your search criteria</div>
+                      </div>
+                    ) : (
+                      paginatedData.map((row, index) => (
+                        <Card key={index} className="hover:shadow-md transition-shadow">
+                          <CardHeader className="p-4 pb-2">
+                            <CardTitle className="text-base">
+                              {row.name || row.title || row.id || `Item ${index + 1}`}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-4 pt-2">
+                            <div className="space-y-1">
+                              {fields.slice(0, 5).map(field => (
+                                <div key={field} className="grid grid-cols-3 gap-2">
+                                  <span className="text-xs text-muted-foreground col-span-1">{field}:</span>
+                                  <span className="text-xs truncate col-span-2">
+                                    {row[field] !== undefined ? String(row[field]).substring(0, 50) : 'N/A'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                )}
+                
+                {viewMode === 'chart' && (
+                  <div className="h-64 flex items-center justify-center">
+                    <div className="text-center">
+                      <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Interactive charts coming soon</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Data visualization will be available in a future update
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-96">
+              <Database className="h-16 w-16 text-muted-foreground mb-4" />
+              <h2 className="text-xl font-medium mb-2">Select a table</h2>
+              <p className="text-muted-foreground text-center max-w-md">
+                Choose a table from the list on the left to view and manage your data
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
