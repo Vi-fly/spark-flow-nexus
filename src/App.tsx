@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +12,7 @@ import Home from "./pages/Home";
 import Tasks from "./pages/Tasks";
 import Contacts from "./pages/Contacts";
 import Settings from "./pages/Settings";
+import Discussions from "./pages/Discussions";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
@@ -33,6 +35,7 @@ const App = () => (
                   <Route path="/tasks" element={<Tasks />} />
                   <Route path="/contacts" element={<Contacts />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/discussions" element={<Discussions />} />
                   <Route path="/gantt" element={
                     <Placeholder 
                       title="Gantt Chart" 
@@ -55,12 +58,6 @@ const App = () => (
                     <Placeholder 
                       title="Data View" 
                       description="Comprehensive data visualization and analytics dashboard for all your project metrics." 
-                    />
-                  } />
-                  <Route path="/discussions" element={
-                    <Placeholder 
-                      title="Discussions" 
-                      description="Team collaboration platform for posts, comments, and thread management." 
                     />
                   } />
                   <Route path="/attendance" element={
