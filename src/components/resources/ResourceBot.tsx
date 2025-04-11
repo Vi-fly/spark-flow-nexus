@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Bot, Brain, Cpu, Database, Filter, Lightbulb, Loader2, Search, User, Users } from 'lucide-react';
+import { Bot, Brain, Cpu, Database, Filter, Lightbulb, Loader2, RefreshCw, Search, User, Users } from 'lucide-react';
 import { Contact } from '@/types/database.types';
 import { databaseConnector } from '@/utils/databaseConnector';
 
