@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { databaseConnector } from '@/utils/databaseConnector';
@@ -23,7 +22,8 @@ import {
   Filter,
   Tag,
   Plus,
-  Send
+  Send,
+  PenSquare
 } from 'lucide-react';
 
 const Discussions = () => {
@@ -38,15 +38,14 @@ const Discussions = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
-  
-  // Demo tags for filtering
+  const [showFloatingButton, setShowFloatingButton] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
   const availableTags = ['Question', 'Discussion', 'Announcement', 'Help', 'Project', 'Bug', 'Feature'];
 
-  // Check MongoDB connection on component mount
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        // Configure MongoDB if not already
         if (databaseConnector.getCurrentConnection() !== 'mongodb') {
           databaseConnector.configureMongoDb('mongodb://localhost:27017', 'discussions_db');
         }
@@ -55,7 +54,6 @@ const Discussions = () => {
         setIsConnected(connected);
         
         if (connected) {
-          // Would fetch real data from MongoDB in production
           fetchPosts();
         } else {
           toast({
@@ -63,7 +61,6 @@ const Discussions = () => {
             description: "Could not connect to MongoDB. Using demo data instead.",
             variant: "destructive"
           });
-          // Load demo data
           loadDemoData();
         }
       } catch (error) {
@@ -80,11 +77,8 @@ const Discussions = () => {
     checkConnection();
   }, [toast]);
 
-  // Fetch posts from MongoDB (simulated)
   const fetchPosts = async () => {
     try {
-      // In a real implementation, this would fetch from MongoDB
-      // Using demo data for now
       loadDemoData();
       
       toast({
@@ -101,7 +95,6 @@ const Discussions = () => {
     }
   };
 
-  // Load demo data for testing
   const loadDemoData = () => {
     const demoUser = user?.email?.split('@')[0] || 'anonymous';
     const currentDate = new Date().toISOString();
@@ -186,7 +179,6 @@ const Discussions = () => {
     setComments(demoComments);
   };
 
-  // Create a new post
   const handleCreatePost = () => {
     if (!newPostTitle.trim() || !newPostContent.trim()) {
       toast({
@@ -197,7 +189,6 @@ const Discussions = () => {
       return;
     }
     
-    // Create new post (would send to MongoDB in production)
     const newPost: DiscussionPost = {
       id: `post_${Date.now()}`,
       user_id: user?.email?.split('@')[0] || 'anonymous',
@@ -221,7 +212,6 @@ const Discussions = () => {
     });
   };
 
-  // Create a new comment
   const handleCreateComment = (postId: string) => {
     const content = newCommentContent[postId];
     
@@ -234,7 +224,6 @@ const Discussions = () => {
       return;
     }
     
-    // Create new comment (would send to MongoDB in production)
     const newComment: DiscussionComment = {
       id: `comment_${Date.now()}`,
       post_id: postId,
@@ -254,7 +243,6 @@ const Discussions = () => {
     
     setComments(updatedComments);
     
-    // Clear the comment input
     setNewCommentContent({
       ...newCommentContent,
       [postId]: ''
@@ -266,7 +254,6 @@ const Discussions = () => {
     });
   };
 
-  // Handle voting (upvote/downvote)
   const handleVote = (
     type: 'post' | 'comment',
     id: string,
@@ -286,7 +273,6 @@ const Discussions = () => {
       
       setPosts(updatedPosts);
     } else {
-      // Update comment
       const updatedComments = { ...comments };
       
       for (const postId in updatedComments) {
@@ -311,7 +297,6 @@ const Discussions = () => {
     });
   };
 
-  // Add a tag to the new post
   const handleAddTag = () => {
     if (!newTag.trim()) return;
     
@@ -327,17 +312,14 @@ const Discussions = () => {
     setNewTag('');
   };
 
-  // Remove a tag from the new post
   const handleRemoveTag = (tag: string) => {
     setSelectedTags(selectedTags.filter(t => t !== tag));
   };
 
-  // Filter posts by tag
   const filteredPosts = selectedTags.length > 0
     ? posts.filter(post => selectedTags.some(tag => post.tags.includes(tag)))
     : posts;
     
-  // Sort posts based on active tab
   const sortedPosts = [...filteredPosts].sort((a, b) => {
     switch (activeTab) {
       case 'hot':
@@ -350,6 +332,23 @@ const Discussions = () => {
         return 0;
     }
   });
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setShowFloatingButton(false);
+      } else {
+        setShowFloatingButton(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
   return (
     <div className="container mx-auto py-6 space-y-8">
@@ -376,7 +375,6 @@ const Discussions = () => {
         </div>
       </div>
 
-      {/* Create a new post */}
       <Card className="animate-fade-in">
         <CardHeader>
           <CardTitle>Create a Post</CardTitle>
@@ -454,7 +452,6 @@ const Discussions = () => {
         </CardFooter>
       </Card>
 
-      {/* Filter tabs */}
       <Tabs 
         defaultValue="hot" 
         value={activeTab} 
@@ -483,7 +480,6 @@ const Discussions = () => {
           </Button>
         </div>
         
-        {/* Post listing */}
         <TabsContent value="hot" className="space-y-4 mt-4">
           {renderPosts(sortedPosts)}
         </TabsContent>
@@ -494,10 +490,35 @@ const Discussions = () => {
           {renderPosts(sortedPosts)}
         </TabsContent>
       </Tabs>
+      
+      <div className={`fixed bottom-8 right-8 transition-all duration-300 ${showFloatingButton ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}`}>
+        <div className="relative group">
+          <Button 
+            size="lg" 
+            className="rounded-full w-16 h-16 shadow-lg group-hover:scale-110 transition-transform duration-200"
+            onClick={() => {
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+              setTimeout(() => {
+                const titleInput = document.querySelector('input[placeholder="Post Title"]');
+                if (titleInput) {
+                  (titleInput as HTMLInputElement).focus();
+                }
+              }, 700);
+            }}
+          >
+            <PenSquare className="h-6 w-6" />
+          </Button>
+          <div className="absolute bottom-full right-0 mb-2 whitespace-nowrap bg-background text-foreground px-3 py-1 rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            Create a post
+          </div>
+        </div>
+      </div>
     </div>
   );
 
-  // Helper function to render posts
   function renderPosts(posts: DiscussionPost[]) {
     if (posts.length === 0) {
       return (
@@ -598,7 +619,6 @@ const Discussions = () => {
             )}
           </div>
           
-          {/* Comments */}
           {comments[post.id] && comments[post.id].length > 0 && (
             <div className="w-full mt-4 space-y-3">
               <h4 className="font-medium">Comments</h4>
@@ -645,7 +665,6 @@ const Discussions = () => {
             </div>
           )}
           
-          {/* Add comment */}
           <div className="w-full mt-4">
             <div className="flex space-x-2">
               <Input

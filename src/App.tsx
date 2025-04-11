@@ -18,6 +18,7 @@ import ProjectDetails from "./pages/ProjectDetails";
 import Email from "./pages/Email";
 import Resources from "./pages/Resources";
 import Attendance from "./pages/Attendance";
+import Data from "./pages/Data";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 
@@ -44,12 +45,7 @@ const App = () => (
                   <Route path="/project/:projectId" element={<ProjectDetails />} />
                   <Route path="/email" element={<Email />} />
                   <Route path="/resources" element={<Resources />} />
-                  <Route path="/data" element={
-                    <Placeholder 
-                      title="Data View" 
-                      description="Comprehensive data visualization and analytics dashboard for all your project metrics." 
-                    />
-                  } />
+                  <Route path="/data" element={<Data />} />
                   <Route path="/attendance" element={<Attendance />} />
                 </Route>
               </Route>
@@ -61,17 +57,6 @@ const App = () => (
       </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
-);
-
-// Simple placeholder component to avoid importing the full Placeholder component
-const Placeholder = ({ title, description }: { title: string; description: string }) => (
-  <div className="flex flex-col items-center justify-center min-h-[70vh] text-center">
-    <h1 className="text-2xl font-bold mb-2">{title}</h1>
-    <p className="text-muted-foreground max-w-md mb-6">{description}</p>
-    <div className="bg-indigo-100 text-indigo-800 text-sm px-3 py-1 rounded-full font-medium">
-      Coming Soon
-    </div>
-  </div>
 );
 
 export default App;
