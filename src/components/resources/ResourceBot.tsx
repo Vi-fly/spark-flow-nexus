@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,12 +49,9 @@ export const ResourceBot = () => {
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [allSkills, setAllSkills] = useState<Skill[]>([]);
   
-  // Load data on component mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        // In a real app, you would fetch from an API
-        // For demo purposes, we'll create mock data
         const technicalSkills: Skill[] = [
           { id: "s1", name: "React", category: "technical", level: 5 },
           { id: "s2", name: "TypeScript", category: "technical", level: 4 },
@@ -222,11 +218,9 @@ export const ResourceBot = () => {
     loadData();
   }, [toast]);
   
-  // Filter contacts based on search query and filters
   useEffect(() => {
     let filtered = [...contacts];
     
-    // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(contact => 
@@ -236,14 +230,12 @@ export const ResourceBot = () => {
       );
     }
     
-    // Apply skill filter
     if (skillFilter) {
       filtered = filtered.filter(contact =>
         contact.skills.some(skill => skill.id === skillFilter)
       );
     }
     
-    // Apply availability filter
     if (availabilityFilter !== null) {
       filtered = filtered.filter(contact =>
         contact.availability >= availabilityFilter
@@ -253,24 +245,17 @@ export const ResourceBot = () => {
     setFilteredContacts(filtered);
   }, [contacts, searchQuery, skillFilter, availabilityFilter]);
   
-  // Auto-allocate resources to tasks
   const handleAutoAllocate = async () => {
     setIsAnalyzing(true);
     
     try {
-      // In a real app, this would be an AI-driven allocation via API
-      // For demo purposes, we'll create a simple algorithm to match skills
-      
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const updatedTasks = [...tasks];
       
-      // Simple allocation algorithm: match by required skills and availability
       updatedTasks.forEach(task => {
         if (task.assignedTo === null) {
-          // Find the best match based on skills and availability
           const matches = contacts.map(contact => {
-            // Calculate skill match score (0-100%)
             const requiredSkillsCount = task.requiredSkills.length;
             const matchedSkillsCount = task.requiredSkills.filter(
               required => contact.skills.some(skill => skill.id === required.id)
@@ -280,10 +265,8 @@ export const ResourceBot = () => {
               ? (matchedSkillsCount / requiredSkillsCount) * 100
               : 0;
               
-            // Factor in availability
             const availabilityScore = contact.availability;
             
-            // Combined score weighted by importance (skills more important than availability)
             const totalScore = (skillMatchScore * 0.7) + (availabilityScore * 0.3);
             
             return {
@@ -294,10 +277,8 @@ export const ResourceBot = () => {
             };
           });
           
-          // Sort by total score (descending)
           matches.sort((a, b) => b.totalScore - a.totalScore);
           
-          // Assign to the best match if above threshold
           if (matches.length > 0 && matches[0].totalScore > 50) {
             task.assignedTo = matches[0].contactId;
           }
@@ -344,7 +325,6 @@ Let me know if you'd like more detailed analysis or have specific questions abou
     }
   };
   
-  // Handle custom analysis request
   const handleCustomAnalysis = async () => {
     if (!customPrompt.trim()) {
       toast({
@@ -358,8 +338,6 @@ Let me know if you'd like more detailed analysis or have specific questions abou
     setIsAnalyzing(true);
     
     try {
-      // In a real app, this would be an AI response via API
-      // For demo purposes, we'll generate canned responses based on keywords
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       let response = "";
@@ -490,7 +468,6 @@ Please let me know if you'd like me to elaborate on any aspect of this analysis 
     }
   };
   
-  // Handle assigning a task manually
   const handleAssignTask = (taskId: string, contactId: string) => {
     setTasks(tasks.map(task => 
       task.id === taskId ? { ...task, assignedTo: contactId } : task
@@ -502,7 +479,6 @@ Please let me know if you'd like me to elaborate on any aspect of this analysis 
     });
   };
   
-  // Handle skill level display
   const renderSkillLevel = (level: number) => {
     return (
       <div className="flex space-x-1">
@@ -516,7 +492,6 @@ Please let me know if you'd like me to elaborate on any aspect of this analysis 
     );
   };
   
-  // Reset all task assignments
   const handleResetAssignments = () => {
     setTasks(tasks.map(task => ({ ...task, assignedTo: null })));
     
@@ -540,7 +515,6 @@ Please let me know if you'd like me to elaborate on any aspect of this analysis 
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column - Team and Tasks */}
         <div className="lg:col-span-2 space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
@@ -571,7 +545,7 @@ Please let me know if you'd like me to elaborate on any aspect of this analysis 
                     <SelectValue placeholder="Filter by skill" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Skills</SelectItem>
+                    <SelectItem value="all">All Skills</SelectItem>
                     {allSkills.map(skill => (
                       <SelectItem key={skill.id} value={skill.id}>
                         {skill.name}
@@ -588,7 +562,7 @@ Please let me know if you'd like me to elaborate on any aspect of this analysis 
                     <SelectValue placeholder="Availability" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any Availability</SelectItem>
+                    <SelectItem value="any">Any Availability</SelectItem>
                     <SelectItem value="25">At least 25%</SelectItem>
                     <SelectItem value="50">At least 50%</SelectItem>
                     <SelectItem value="75">At least 75%</SelectItem>
@@ -771,7 +745,6 @@ Please let me know if you'd like me to elaborate on any aspect of this analysis 
           </Tabs>
         </div>
         
-        {/* Right column - AI Bot */}
         <div className="space-y-6">
           <Card className="h-full">
             <CardHeader className="pb-2">
