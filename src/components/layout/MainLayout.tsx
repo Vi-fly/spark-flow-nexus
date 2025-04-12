@@ -17,7 +17,12 @@ export function MainLayout() {
   const { 
     theme, 
     toggleTheme,
-    compactMode
+    reduceMotion,
+    highContrast,
+    glassEffects,
+    compactMode,
+    accentColor,
+    fontScale
   } = useTheme();
   const location = useLocation();
   const [pageKey, setPageKey] = useState(location.pathname);
@@ -26,18 +31,44 @@ export function MainLayout() {
   useEffect(() => {
     setPageKey(location.pathname);
   }, [location.pathname]);
+
+  // Get animation properties based on reduceMotion setting
+  const getAnimationProps = () => {
+    if (reduceMotion) {
+      return {
+        initial: { opacity: 0.8 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0.8 },
+        transition: { duration: 0.1 }
+      };
+    }
+    
+    return {
+      initial: { opacity: 0, y: 10 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: -10 },
+      transition: { duration: 0.3 }
+    };
+  };
+  
+  // Apply classes based on settings
+  const containerClasses = [
+    'flex h-screen w-full overflow-hidden bg-background',
+    compactMode ? 'compact-mode' : '',
+    highContrast ? 'high-contrast-mode' : '',
+    glassEffects ? 'glass-effects-enabled' : '',
+    `accent-${accentColor}`,
+    `font-scale-${fontScale.replace('.', '_')}`
+  ].filter(Boolean).join(' ');
   
   return (
-    <div className={`flex h-screen w-full overflow-hidden bg-background ${compactMode ? 'compact-mode' : ''}`}>
+    <div className={containerClasses}>
       <Sidebar />
       <main className="flex-1 overflow-auto relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={pageKey}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
+            {...getAnimationProps()}
             className="container py-6 h-full"
           >
             <Outlet />

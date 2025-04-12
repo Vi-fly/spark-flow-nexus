@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { NavLink } from 'react-router-dom';
 import { 
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 
 type SidebarProps = {
   className?: string;
@@ -46,8 +47,14 @@ const navItems: NavItem[] = [
 
 // Sidebar component for application navigation
 export function Sidebar({ className }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const { compactSidebar = false } = useTheme();
+  const [collapsed, setCollapsed] = useState(compactSidebar);
   const { user } = useAuth();
+
+  // Update collapsed state when compactSidebar setting changes
+  useEffect(() => {
+    setCollapsed(compactSidebar);
+  }, [compactSidebar]);
 
   // Toggle sidebar between collapsed and expanded states
   const toggleSidebar = () => setCollapsed(!collapsed);

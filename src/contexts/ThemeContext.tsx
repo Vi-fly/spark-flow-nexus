@@ -20,6 +20,16 @@ type ThemeContextType = {
   setFontScale: (scale: string) => void;
   colorScheme: string;
   setColorScheme: (scheme: string) => void;
+  compactSidebar: boolean;
+  setCompactSidebar: (value: boolean) => void;
+  fixedHeader: boolean;
+  setFixedHeader: (value: boolean) => void;
+  showQuickActions: boolean;
+  setShowQuickActions: (value: boolean) => void;
+  tabbedInterface: boolean;
+  setTabbedInterface: (value: boolean) => void;
+  dashboardLayout: string;
+  setDashboardLayout: (layout: string) => void;
 };
 
 // Create the context with default values
@@ -48,6 +58,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [accentColor, setAccentColor] = useState(localStorage.getItem('accentColor') || 'indigo');
   const [fontScale, setFontScale] = useState(localStorage.getItem('fontScale') || '1');
   const [colorScheme, setColorScheme] = useState(localStorage.getItem('colorScheme') || 'default');
+  
+  // Layout settings
+  const [compactSidebar, setCompactSidebar] = useState(localStorage.getItem('compactSidebar') === 'true');
+  const [fixedHeader, setFixedHeader] = useState(localStorage.getItem('fixedHeader') !== 'false');
+  const [showQuickActions, setShowQuickActions] = useState(localStorage.getItem('showQuickActions') !== 'false');
+  const [tabbedInterface, setTabbedInterface] = useState(localStorage.getItem('tabbedInterface') === 'true');
+  const [dashboardLayout, setDashboardLayout] = useState(localStorage.getItem('dashboardLayout') || 'grid');
 
   // Function to toggle between light and dark themes
   const toggleTheme = () => {
@@ -68,7 +85,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [theme]);
 
-  // Apply all other settings when they change
+  // Apply all appearance settings when they change
   useEffect(() => {
     // Store settings in localStorage
     localStorage.setItem('reduceMotion', reduceMotion.toString());
@@ -94,9 +111,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     // Apply high contrast
     if (highContrast) {
-      root.classList.add('high-contrast');
+      root.classList.add('high-contrast-mode');
     } else {
-      root.classList.remove('high-contrast');
+      root.classList.remove('high-contrast-mode');
     }
     
     // Apply compact mode
@@ -111,6 +128,44 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.setAttribute('data-color-scheme', colorScheme);
     
   }, [reduceMotion, highContrast, glassEffects, compactMode, accentColor, fontScale, colorScheme]);
+
+  // Apply layout settings when they change
+  useEffect(() => {
+    // Store layout settings in localStorage
+    localStorage.setItem('compactSidebar', compactSidebar.toString());
+    localStorage.setItem('fixedHeader', fixedHeader.toString());
+    localStorage.setItem('showQuickActions', showQuickActions.toString());
+    localStorage.setItem('tabbedInterface', tabbedInterface.toString());
+    localStorage.setItem('dashboardLayout', dashboardLayout);
+    
+    // Apply layout settings to document
+    const root = document.documentElement;
+    
+    // Apply compact sidebar
+    if (compactSidebar) {
+      root.classList.add('compact-sidebar');
+    } else {
+      root.classList.remove('compact-sidebar');
+    }
+    
+    // Apply fixed header
+    if (fixedHeader) {
+      root.classList.add('fixed-header');
+    } else {
+      root.classList.remove('fixed-header');
+    }
+    
+    // Apply tabbed interface
+    if (tabbedInterface) {
+      root.classList.add('tabbed-interface');
+    } else {
+      root.classList.remove('tabbed-interface');
+    }
+    
+    // Apply dashboard layout
+    root.setAttribute('data-dashboard-layout', dashboardLayout);
+    
+  }, [compactSidebar, fixedHeader, showQuickActions, tabbedInterface, dashboardLayout]);
 
   // Listen for system preference changes
   useEffect(() => {
@@ -128,6 +183,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     // Clean up
     return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  // Listen for reduced motion preference
+  useEffect(() => {
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    
+    const handleMotionChange = (e: MediaQueryListEvent) => {
+      // Only update if user hasn't manually set a preference
+      if (!localStorage.getItem('reduceMotion')) {
+        setReduceMotion(e.matches);
+      }
+    };
+    
+    // Add event listener
+    motionQuery.addEventListener('change', handleMotionChange);
+    
+    // Clean up
+    return () => motionQuery.removeEventListener('change', handleMotionChange);
   }, []);
 
   // Provide all settings to children
@@ -149,7 +222,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       fontScale,
       setFontScale,
       colorScheme,
-      setColorScheme
+      setColorScheme,
+      compactSidebar,
+      setCompactSidebar,
+      fixedHeader,
+      setFixedHeader,
+      showQuickActions,
+      setShowQuickActions,
+      tabbedInterface, 
+      setTabbedInterface,
+      dashboardLayout,
+      setDashboardLayout
     }}>
       {children}
     </ThemeContext.Provider>
