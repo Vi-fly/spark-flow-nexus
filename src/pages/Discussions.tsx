@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiscussionPost, DiscussionComment } from '@/types/discussion.types';
@@ -24,7 +25,8 @@ import {
   Send,
   PenSquare,
   Search,
-  Filter as FilterIcon
+  Filter as FilterIcon,
+  X
 } from 'lucide-react';
 
 const Discussions = () => {
@@ -42,6 +44,7 @@ const Discussions = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showCreatePostForm, setShowCreatePostForm] = useState(false);
 
   const availableTags = ['Question', 'Discussion', 'Announcement', 'Help', 'Project', 'Bug', 'Feature'];
 
@@ -181,6 +184,7 @@ const Discussions = () => {
     setSelectedTags([]);
     setNewPostTitle('');
     setNewPostContent('');
+    setShowCreatePostForm(false);
     
     toast({
       title: "Post Created",
@@ -483,175 +487,185 @@ const Discussions = () => {
         </div>
       </div>
 
-      <Card className="animate-fade-in">
-        <CardHeader>
-          <CardTitle>Create a Post</CardTitle>
-          <CardDescription>Share something interesting with the community</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Input
-              placeholder="Post Title"
-              value={newPostTitle}
-              onChange={(e) => setNewPostTitle(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Textarea
-              placeholder="Write your post here..."
-              className="min-h-32"
-              value={newPostContent}
-              onChange={(e) => setNewPostContent(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {selectedTags.map(tag => (
-              <div 
-                key={tag} 
-                className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs flex items-center"
-              >
-                <span>{tag}</span>
-                <button 
-                  className="ml-2 hover:text-destructive"
-                  onClick={() => handleRemoveTag(tag)}
-                >
-                  &times;
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input 
-              placeholder="Add a tag" 
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              className="w-64"
-            />
-            <Button variant="outline" size="sm" onClick={handleAddTag}>
-              <Tag className="h-4 w-4 mr-1" />
-              Add Tag
+      {showCreatePostForm && (
+        <Card className="animate-fade-in">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle>Create a Post</CardTitle>
+              <CardDescription>Share something interesting with the community</CardDescription>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setShowCreatePostForm(false)}
+              className="rounded-full h-8 w-8"
+            >
+              <X className="h-4 w-4" />
             </Button>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <div className="flex flex-wrap gap-2">
-            {availableTags.map(tag => (
-              <Button 
-                key={tag} 
-                variant="ghost" 
-                size="sm"
-                className={selectedTags.includes(tag) ? "bg-primary/20" : ""}
-                onClick={() => {
-                  if (selectedTags.includes(tag)) {
-                    handleRemoveTag(tag);
-                  } else {
-                    setSelectedTags([...selectedTags, tag]);
-                  }
-                }}
-              >
-                {tag}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                placeholder="Post Title"
+                value={newPostTitle}
+                onChange={(e) => setNewPostTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Write your post here..."
+                className="min-h-32"
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {selectedTags.map(tag => (
+                <div 
+                  key={tag} 
+                  className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs flex items-center"
+                >
+                  <span>{tag}</span>
+                  <button 
+                    className="ml-2 hover:text-destructive"
+                    onClick={() => handleRemoveTag(tag)}
+                  >
+                    &times;
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input 
+                placeholder="Add a tag" 
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                className="w-64"
+              />
+              <Button variant="outline" size="sm" onClick={handleAddTag}>
+                <Tag className="h-4 w-4 mr-1" />
+                Add Tag
               </Button>
-            ))}
-          </div>
-          <Button onClick={handleCreatePost}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Post
-          </Button>
-        </CardFooter>
-      </Card>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map(tag => (
+                <Button 
+                  key={tag} 
+                  variant="ghost" 
+                  size="sm"
+                  className={selectedTags.includes(tag) ? "bg-primary/20" : ""}
+                  onClick={() => {
+                    if (selectedTags.includes(tag)) {
+                      handleRemoveTag(tag);
+                    } else {
+                      setSelectedTags([...selectedTags, tag]);
+                    }
+                  }}
+                >
+                  {tag}
+                </Button>
+              ))}
+            </div>
+            <Button onClick={handleCreatePost}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Post
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
 
       <div className="flex flex-col md:flex-row gap-4 items-start">
         <div className="w-full md:w-3/4">
-          <div className="flex items-center justify-between mb-4">
-            <Tabs 
-              defaultValue="hot" 
-              value={activeTab} 
-              onValueChange={setActiveTab}
-              className="w-full"
-            >
-              <div className="flex justify-between items-center">
-                <TabsList>
-                  <TabsTrigger value="hot" className="flex items-center">
-                    <Heart className="h-4 w-4 mr-2" />
-                    Hot
-                  </TabsTrigger>
-                  <TabsTrigger value="new" className="flex items-center">
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    New
-                  </TabsTrigger>
-                  <TabsTrigger value="top" className="flex items-center">
-                    <ArrowUp className="h-4 w-4 mr-2" />
-                    Top
-                  </TabsTrigger>
-                </TabsList>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center gap-2"
-                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                >
-                  <FilterIcon className="h-4 w-4" />
-                  Filters
-                </Button>
-              </div>
+          <Tabs 
+            defaultValue="hot" 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <div className="flex justify-between items-center">
+              <TabsList>
+                <TabsTrigger value="hot" className="flex items-center">
+                  <Heart className="h-4 w-4 mr-2" />
+                  Hot
+                </TabsTrigger>
+                <TabsTrigger value="new" className="flex items-center">
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  New
+                </TabsTrigger>
+                <TabsTrigger value="top" className="flex items-center">
+                  <ArrowUp className="h-4 w-4 mr-2" />
+                  Top
+                </TabsTrigger>
+              </TabsList>
               
-              <div className="mb-6 mt-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search discussions..."
-                    value={searchQuery}
-                    onChange={handleSearch}
-                    className="pl-10"
-                  />
-                </div>
-    
-                {showAdvancedFilters && (
-                  <Card className="mt-4 p-4 animate-fade-in">
-                    <h3 className="font-medium mb-2">Filter by tags</h3>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {availableTags.map(tag => (
-                        <Button 
-                          key={tag} 
-                          variant={selectedTags.includes(tag) ? "default" : "outline"} 
-                          size="sm"
-                          onClick={() => {
-                            if (selectedTags.includes(tag)) {
-                              handleRemoveTag(tag);
-                            } else {
-                              setSelectedTags([...selectedTags, tag]);
-                            }
-                          }}
-                        >
-                          {tag}
-                        </Button>
-                      ))}
-                    </div>
-                    <div className="flex justify-end">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setSelectedTags([])}
-                      >
-                        Clear filters
-                      </Button>
-                    </div>
-                  </Card>
-                )}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-2"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              >
+                <FilterIcon className="h-4 w-4" />
+                Filters
+              </Button>
+            </div>
+            
+            <div className="mb-6 mt-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search discussions..."
+                  value={searchQuery}
+                  onChange={handleSearch}
+                  className="pl-10"
+                />
               </div>
-    
-              <TabsContent value="hot" className="space-y-4">
-                {renderPosts(sortedPosts)}
-              </TabsContent>
-              <TabsContent value="new" className="space-y-4">
-                {renderPosts(sortedPosts)}
-              </TabsContent>
-              <TabsContent value="top" className="space-y-4">
-                {renderPosts(sortedPosts)}
-              </TabsContent>
-            </Tabs>
-          </div>
+  
+              {showAdvancedFilters && (
+                <Card className="mt-4 p-4 animate-fade-in">
+                  <h3 className="font-medium mb-2">Filter by tags</h3>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {availableTags.map(tag => (
+                      <Button 
+                        key={tag} 
+                        variant={selectedTags.includes(tag) ? "default" : "outline"} 
+                        size="sm"
+                        onClick={() => {
+                          if (selectedTags.includes(tag)) {
+                            handleRemoveTag(tag);
+                          } else {
+                            setSelectedTags([...selectedTags, tag]);
+                          }
+                        }}
+                      >
+                        {tag}
+                      </Button>
+                    ))}
+                  </div>
+                  <div className="flex justify-end">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setSelectedTags([])}
+                    >
+                      Clear filters
+                    </Button>
+                  </div>
+                </Card>
+              )}
+            </div>
+  
+            <TabsContent value="hot" className="space-y-4">
+              {renderPosts(sortedPosts)}
+            </TabsContent>
+            <TabsContent value="new" className="space-y-4">
+              {renderPosts(sortedPosts)}
+            </TabsContent>
+            <TabsContent value="top" className="space-y-4">
+              {renderPosts(sortedPosts)}
+            </TabsContent>
+          </Tabs>
         </div>
 
         <div className="w-full md:w-1/4 sticky top-4">
@@ -715,18 +729,7 @@ const Discussions = () => {
           <Button 
             size="lg" 
             className="rounded-full w-16 h-16 shadow-lg group-hover:scale-110 transition-transform duration-200"
-            onClick={() => {
-              window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-              });
-              setTimeout(() => {
-                const titleInput = document.querySelector('input[placeholder="Post Title"]');
-                if (titleInput) {
-                  (titleInput as HTMLInputElement).focus();
-                }
-              }, 700);
-            }}
+            onClick={() => setShowCreatePostForm(true)}
           >
             <PenSquare className="h-6 w-6" />
           </Button>
