@@ -339,6 +339,139 @@ const Discussions = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [lastScrollY]);
 
+  function renderPosts(posts: DiscussionPost[]) {
+    if (posts.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-semibold">No posts yet</h3>
+          <p className="text-muted-foreground">Be the first to start a discussion!</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {posts.map(post => (
+          <Card key={post.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between">
+                <div>
+                  <CardTitle className="text-xl">{post.title}</CardTitle>
+                  <CardDescription>
+                    Posted by {post.user_id} · {new Date(post.created_at).toLocaleDateString()}
+                  </CardDescription>
+                </div>
+                <div className="flex flex-col items-center">
+                  <Button variant="ghost" size="sm" onClick={() => handleVote('post', post.id, 'upvote')}>
+                    <ArrowUp className="h-5 w-5" />
+                  </Button>
+                  <span className="font-bold">{post.upvotes - post.downvotes}</span>
+                  <Button variant="ghost" size="sm" onClick={() => handleVote('post', post.id, 'downvote')}>
+                    <ArrowDown className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">{post.content}</p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {post.tags.map(tag => (
+                  <div 
+                    key={tag} 
+                    className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs"
+                  >
+                    {tag}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-4 text-muted-foreground">
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  <MessageCircle className="h-4 w-4" />
+                  <span>{comments[post.id]?.length || 0} Comments</span>
+                </Button>
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  <Share className="h-4 w-4" />
+                  Share
+                </Button>
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  <Bookmark className="h-4 w-4" />
+                  Save
+                </Button>
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  <Flag className="h-4 w-4" />
+                  Report
+                </Button>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t pt-4 flex flex-col space-y-4">
+              <div className="w-full">
+                <h4 className="text-sm font-medium mb-2">Comments</h4>
+                <div className="space-y-4">
+                  {(comments[post.id] || []).map(comment => (
+                    <div key={comment.id} className="flex gap-2 group">
+                      <div className="flex flex-col items-center">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0"
+                          onClick={() => handleVote('comment', comment.id, 'upvote')}
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <span className="text-xs font-medium">{comment.upvotes - comment.downvotes}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0"
+                          onClick={() => handleVote('comment', comment.id, 'downvote')}
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="flex-1 bg-muted/50 rounded-md p-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">{comment.user_id}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(comment.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-sm">{comment.content}</p>
+                        <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">Reply</Button>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">Share</Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="w-full flex gap-2">
+                <Textarea 
+                  placeholder="Write a comment..." 
+                  className="min-h-20"
+                  value={newCommentContent[post.id] || ''}
+                  onChange={(e) => setNewCommentContent({
+                    ...newCommentContent,
+                    [post.id]: e.target.value
+                  })}
+                />
+                <Button 
+                  onClick={() => handleCreateComment(post.id)} 
+                  className="self-end"
+                  disabled={!newCommentContent[post.id]?.trim()}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-6 space-y-8">
       <div className="flex items-center justify-between">
@@ -462,63 +595,63 @@ const Discussions = () => {
                   Filters
                 </Button>
               </div>
+              
+              <div className="mb-6 mt-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search discussions..."
+                    value={searchQuery}
+                    onChange={handleSearch}
+                    className="pl-10"
+                  />
+                </div>
+    
+                {showAdvancedFilters && (
+                  <Card className="mt-4 p-4 animate-fade-in">
+                    <h3 className="font-medium mb-2">Filter by tags</h3>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {availableTags.map(tag => (
+                        <Button 
+                          key={tag} 
+                          variant={selectedTags.includes(tag) ? "default" : "outline"} 
+                          size="sm"
+                          onClick={() => {
+                            if (selectedTags.includes(tag)) {
+                              handleRemoveTag(tag);
+                            } else {
+                              setSelectedTags([...selectedTags, tag]);
+                            }
+                          }}
+                        >
+                          {tag}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex justify-end">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setSelectedTags([])}
+                      >
+                        Clear filters
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+              </div>
+    
+              <TabsContent value="hot" className="space-y-4">
+                {renderPosts(sortedPosts)}
+              </TabsContent>
+              <TabsContent value="new" className="space-y-4">
+                {renderPosts(sortedPosts)}
+              </TabsContent>
+              <TabsContent value="top" className="space-y-4">
+                {renderPosts(sortedPosts)}
+              </TabsContent>
             </Tabs>
           </div>
-
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search discussions..."
-                value={searchQuery}
-                onChange={handleSearch}
-                className="pl-10"
-              />
-            </div>
-
-            {showAdvancedFilters && (
-              <Card className="mt-4 p-4 animate-fade-in">
-                <h3 className="font-medium mb-2">Filter by tags</h3>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {availableTags.map(tag => (
-                    <Button 
-                      key={tag} 
-                      variant={selectedTags.includes(tag) ? "default" : "outline"} 
-                      size="sm"
-                      onClick={() => {
-                        if (selectedTags.includes(tag)) {
-                          handleRemoveTag(tag);
-                        } else {
-                          setSelectedTags([...selectedTags, tag]);
-                        }
-                      }}
-                    >
-                      {tag}
-                    </Button>
-                  ))}
-                </div>
-                <div className="flex justify-end">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setSelectedTags([])}
-                  >
-                    Clear filters
-                  </Button>
-                </div>
-              </Card>
-            )}
-          </div>
-          
-          <TabsContent value="hot" className="space-y-4 mt-4">
-            {renderPosts(sortedPosts)}
-          </TabsContent>
-          <TabsContent value="new" className="space-y-4 mt-4">
-            {renderPosts(sortedPosts)}
-          </TabsContent>
-          <TabsContent value="top" className="space-y-4 mt-4">
-            {renderPosts(sortedPosts)}
-          </TabsContent>
         </div>
 
         <div className="w-full md:w-1/4 sticky top-4">
@@ -604,177 +737,6 @@ const Discussions = () => {
       </div>
     </div>
   );
-
-  function renderPosts(posts: DiscussionPost[]) {
-    if (posts.length === 0) {
-      return (
-        <div className="text-center py-12">
-          <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">No posts yet</h3>
-          <p className="text-muted-foreground">Be the first to start a discussion</p>
-        </div>
-      );
-    }
-    
-    return posts.map(post => (
-      <Card key={post.id} className="animate-fade-in hover:shadow-md transition-all">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-xl">{post.title}</CardTitle>
-              <div className="flex items-center mt-1 space-x-2">
-                <span className="text-sm font-medium">Posted by {post.user_id}</span>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(post.created_at).toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-            
-            <div className="flex flex-col items-center">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => handleVote('post', post.id, 'upvote')}
-                className="h-8 w-8"
-              >
-                <ArrowUp className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-semibold">{post.upvotes - post.downvotes}</span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => handleVote('post', post.id, 'downvote')}
-                className="h-8 w-8"
-              >
-                <ArrowDown className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap gap-2 mt-2">
-            {post.tags.map(tag => (
-              <div 
-                key={`${post.id}-${tag}`} 
-                className="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs"
-              >
-                {tag}
-              </div>
-            ))}
-          </div>
-        </CardHeader>
-        
-        <CardContent>
-          <p className="whitespace-pre-line">{post.content}</p>
-        </CardContent>
-        
-        <CardFooter className="flex flex-col items-stretch">
-          <div className="flex justify-between border-t border-border pt-4">
-            <div className="flex space-x-1">
-              <Button variant="ghost" size="sm" className="text-muted-foreground">
-                <MessageCircle className="h-4 w-4 mr-1" />
-                {comments[post.id]?.length || 0} Comments
-              </Button>
-              <Button variant="ghost" size="sm" className="text-muted-foreground">
-                <Share className="h-4 w-4 mr-1" />
-                Share
-              </Button>
-              <Button variant="ghost" size="sm" className="text-muted-foreground">
-                <Bookmark className="h-4 w-4 mr-1" />
-                Save
-              </Button>
-            </div>
-            
-            {post.user_id === user?.email?.split('@')[0] && (
-              <div className="flex space-x-1">
-                <Button variant="ghost" size="sm" className="text-muted-foreground">
-                  <Edit className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
-                <Button variant="ghost" size="sm" className="text-destructive">
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Delete
-                </Button>
-              </div>
-            )}
-            
-            {post.user_id !== user?.email?.split('@')[0] && (
-              <Button variant="ghost" size="sm" className="text-muted-foreground">
-                <Flag className="h-4 w-4 mr-1" />
-                Report
-              </Button>
-            )}
-          </div>
-          
-          {comments[post.id] && comments[post.id].length > 0 && (
-            <div className="w-full mt-4 space-y-3">
-              <h4 className="font-medium">Comments</h4>
-              {comments[post.id].map(comment => (
-                <div 
-                  key={comment.id} 
-                  className="border-l-2 border-primary/30 pl-4 py-2"
-                >
-                  <div className="flex items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center mb-1">
-                        <span className="text-sm font-medium">{comment.user_id}</span>
-                        <span className="text-xs text-muted-foreground ml-2">
-                          {new Date(comment.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-sm">{comment.content}</p>
-                    </div>
-                    
-                    <div className="flex items-center space-x-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleVote('comment', comment.id, 'upvote')}
-                        className="h-6 w-6"
-                      >
-                        <ArrowUp className="h-3 w-3" />
-                      </Button>
-                      <span className="text-xs font-semibold">
-                        {comment.upvotes - comment.downvotes}
-                      </span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => handleVote('comment', comment.id, 'downvote')}
-                        className="h-6 w-6"
-                      >
-                        <ArrowDown className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          <div className="w-full mt-4">
-            <div className="flex space-x-2">
-              <Input
-                placeholder="Write a comment..."
-                value={newCommentContent[post.id] || ''}
-                onChange={(e) => 
-                  setNewCommentContent({
-                    ...newCommentContent,
-                    [post.id]: e.target.value
-                  })
-                }
-              />
-              <Button 
-                variant="outline" 
-                onClick={() => handleCreateComment(post.id)}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </CardFooter>
-      </Card>
-    ));
-  }
 };
 
 export default Discussions;
