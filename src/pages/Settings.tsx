@@ -925,4 +925,288 @@ const Settings = () => {
         
         <TabsContent value="security" className="animate-fade-in">
           <Card className="p-6 glass">
-            <h2 className="text-2xl
+            <h2 className="text-2xl font-bold mb-6 gradient-text">Security Settings</h2>
+            <p className="text-muted-foreground mb-4">Manage your security settings and preferences</p>
+            
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Two-Factor Authentication</h3>
+                  <p className="text-sm text-muted-foreground">Enable two-factor authentication for added security</p>
+                </div>
+                <Switch 
+                  checked={twoFactorAuth}
+                  onCheckedChange={setTwoFactorAuth}
+                  className="hover-scale" 
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Session Timeout</h3>
+                  <p className="text-sm text-muted-foreground">Set a timeout for inactive sessions</p>
+                </div>
+                <Input 
+                  type="number"
+                  value={sessionTimeout}
+                  onChange={(e) => setSessionTimeout(e.target.value)}
+                  className="w-20"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-8">
+              <Button 
+                className="hover-scale"
+                onClick={handleSaveSecurity}
+              >
+                Save Security Settings
+              </Button>
+            </div>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="preferences" className="animate-fade-in">
+          <Card className="p-6 glass">
+            <h2 className="text-2xl font-bold mb-6 gradient-text">Preferences</h2>
+            <p className="text-muted-foreground mb-4">Customize your application preferences</p>
+            
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Language</h3>
+                  <p className="text-sm text-muted-foreground">Choose your preferred language</p>
+                </div>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="english">English</SelectItem>
+                    <SelectItem value="spanish">Spanish</SelectItem>
+                    <SelectItem value="french">French</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Timezone</h3>
+                  <p className="text-sm text-muted-foreground">Set your preferred timezone</p>
+                </div>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="utc">UTC</SelectItem>
+                    <SelectItem value="est">EST</SelectItem>
+                    <SelectItem value="pst">PST</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Font Scale</h3>
+                  <p className="text-sm text-muted-foreground">Adjust the font size for better readability</p>
+                </div>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select font scale" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">Small</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="large">Large</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Color Scheme</h3>
+                  <p className="text-sm text-muted-foreground">Choose your preferred color scheme</p>
+                </div>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select color scheme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">Light</SelectItem>
+                    <SelectItem value="dark">Dark</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Date Format</h3>
+                  <p className="text-sm text-muted-foreground">Set your preferred date format</p>
+                </div>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select date format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mdy">MM/DD/YYYY</SelectItem>
+                    <SelectItem value="dmy">DD/MM/YYYY</SelectItem>
+                    <SelectItem value="ymd">YYYY/MM/DD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="mt-8">
+              <Button 
+                className="hover-scale"
+                onClick={handleSavePreferences}
+              >
+                Save Preferences
+              </Button>
+            </div>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="layout" className="animate-fade-in">
+          <Card className="p-6 glass">
+            <h2 className="text-2xl font-bold mb-6 gradient-text">Layout Settings</h2>
+            <p className="text-muted-foreground mb-4">Customize the layout of your application</p>
+            
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Compact Sidebar</h3>
+                  <p className="text-sm text-muted-foreground">Use a more compact sidebar layout</p>
+                </div>
+                <Switch 
+                  checked={compactSidebar}
+                  onCheckedChange={setCompactSidebar}
+                  className="hover-scale" 
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Fixed Header</h3>
+                  <p className="text-sm text-muted-foreground">Keep the header fixed while scrolling</p>
+                </div>
+                <Switch 
+                  checked={fixedHeader}
+                  onCheckedChange={setFixedHeader}
+                  className="hover-scale" 
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Show Quick Actions</h3>
+                  <p className="text-sm text-muted-foreground">Display quick action buttons in the header</p>
+                </div>
+                <Switch 
+                  checked={showQuickActions}
+                  onCheckedChange={setShowQuickActions}
+                  className="hover-scale" 
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Tabbed Interface</h3>
+                  <p className="text-sm text-muted-foreground">Use a tabbed interface for multiple views</p>
+                </div>
+                <Switch 
+                  checked={tabbedInterface}
+                  onCheckedChange={setTabbedInterface}
+                  className="hover-scale" 
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium">Dashboard Layout</h3>
+                <p className="text-sm text-muted-foreground mb-2">Choose the default layout for dashboards</p>
+                <div className="flex space-x-4">
+                  <Button 
+                    variant={dashboardLayout === 'grid' ? 'default' : 'outline'}
+                    className="flex items-center gap-2"
+                    onClick={() => setDashboardLayout('grid')}
+                  >
+                    <GanttChartSquare className="h-4 w-4" />
+                    Grid
+                  </Button>
+                  <Button 
+                    variant={dashboardLayout === 'list' ? 'default' : 'outline'}
+                    className="flex items-center gap-2"
+                    onClick={() => setDashboardLayout('list')}
+                  >
+                    <Layout className="h-4 w-4" />
+                    List
+                  </Button>
+                  <Button 
+                    variant={dashboardLayout === 'compact' ? 'default' : 'outline'}
+                    className="flex items-center gap-2"
+                    onClick={() => setDashboardLayout('compact')}
+                  >
+                    <Monitor className="h-4 w-4" />
+                    Compact
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-8 grid grid-cols-2 gap-4">
+              <Button 
+                variant="outline" 
+                className="hover-scale"
+                onClick={handleResetLayout}
+              >
+                Reset to Defaults
+              </Button>
+              <Button 
+                className="hover-scale"
+                onClick={handleSaveLayout}
+              >
+                Save Changes
+              </Button>
+            </div>
+          </Card>
+        </TabsContent>
+        
+        <div className="mt-12 p-6 border rounded-lg bg-card">
+          <h2 className="text-xl font-bold mb-4">Import/Export Settings</h2>
+          <p className="text-muted-foreground mb-6">Backup or restore your settings</p>
+          
+          <div className="flex space-x-4">
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2"
+              onClick={handleExportSettings}
+            >
+              <Download className="h-4 w-4" />
+              Export Settings
+            </Button>
+            
+            <div className="relative">
+              <input
+                type="file"
+                id="import-settings"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                accept=".json"
+                onChange={handleImportSettings}
+              />
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Import Settings
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Tabs>
+    </div>
+  );
+};
+
+export default Settings;
