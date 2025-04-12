@@ -45,7 +45,25 @@ import { Progress } from '@/components/ui/progress';
 import { toast as sonnerToast } from 'sonner';
 
 const Settings = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { 
+    theme, 
+    toggleTheme, 
+    reduceMotion, 
+    setReduceMotion,
+    highContrast,
+    setHighContrast,
+    glassEffects,
+    setGlassEffects,
+    compactMode,
+    setCompactMode,
+    accentColor,
+    setAccentColor,
+    fontScale,
+    setFontScale,
+    colorScheme,
+    setColorScheme
+  } = useTheme();
+  
   const { toast } = useToast();
   
   // GROQ API Key settings
@@ -60,18 +78,9 @@ const Settings = () => {
   const [googleMapsKey, setGoogleMapsKey] = useState(localStorage.getItem('googleMapsApiKey') || '');
   const [showGoogleMapsKey, setShowGoogleMapsKey] = useState(false);
   
-  // Appearance settings
-  const [reduceMotion, setReduceMotion] = useState(localStorage.getItem('reduceMotion') === 'true');
-  const [highContrast, setHighContrast] = useState(localStorage.getItem('highContrast') === 'true');
-  const [glassEffects, setGlassEffects] = useState(localStorage.getItem('glassEffects') !== 'false');
-  const [compactMode, setCompactMode] = useState(localStorage.getItem('compactMode') === 'true');
-  const [accentColor, setAccentColor] = useState(localStorage.getItem('accentColor') || 'blue');
-  
   // User preferences
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'english');
   const [timezone, setTimezone] = useState(localStorage.getItem('timezone') || 'utc');
-  const [fontScale, setFontScale] = useState(localStorage.getItem('fontScale') || '1');
-  const [colorScheme, setColorScheme] = useState(localStorage.getItem('colorScheme') || 'default');
   const [dateFormat, setDateFormat] = useState(localStorage.getItem('dateFormat') || 'mdy');
 
   // Account settings
@@ -97,35 +106,6 @@ const Settings = () => {
   const [showQuickActions, setShowQuickActions] = useState(localStorage.getItem('showQuickActions') !== 'false');
   const [tabbedInterface, setTabbedInterface] = useState(localStorage.getItem('tabbedInterface') === 'true');
   const [dashboardLayout, setDashboardLayout] = useState(localStorage.getItem('dashboardLayout') || 'grid');
-
-  useEffect(() => {
-    // Apply font scaling when component mounts or fontScale changes
-    document.documentElement.style.fontSize = `${parseInt(fontScale) * 100}%`;
-    
-    // Apply high contrast if enabled
-    if (highContrast) {
-      document.documentElement.classList.add('high-contrast');
-    } else {
-      document.documentElement.classList.remove('high-contrast');
-    }
-    
-    // Apply compact mode if enabled
-    if (compactMode) {
-      document.documentElement.classList.add('compact-mode');
-    } else {
-      document.documentElement.classList.remove('compact-mode');
-    }
-    
-    // Apply reduce motion if enabled
-    if (reduceMotion) {
-      document.documentElement.classList.add('reduce-motion');
-    } else {
-      document.documentElement.classList.remove('reduce-motion');
-    }
-    
-    // Apply accent color
-    document.documentElement.setAttribute('data-accent', accentColor);
-  }, [fontScale, highContrast, compactMode, reduceMotion, accentColor]);
 
   const handleSaveGroqKey = () => {
     setIsSavingGroqKey(true);
@@ -206,12 +186,11 @@ const Settings = () => {
     // Save individual preferences
     localStorage.setItem('language', language);
     localStorage.setItem('timezone', timezone);
-    localStorage.setItem('fontScale', fontScale);
-    localStorage.setItem('colorScheme', colorScheme);
     localStorage.setItem('dateFormat', dateFormat);
     
-    // Apply the font scaling
-    document.documentElement.style.fontSize = `${parseInt(fontScale) * 100}%`;
+    // Apply the font scaling and color scheme via the ThemeContext
+    setFontScale(fontScale);
+    setColorScheme(colorScheme);
     
     toast({
       title: "Preferences Saved",
@@ -223,12 +202,8 @@ const Settings = () => {
   };
 
   const handleSaveAppearance = () => {
-    // Save appearance settings
-    localStorage.setItem('reduceMotion', reduceMotion.toString());
-    localStorage.setItem('highContrast', highContrast.toString());
-    localStorage.setItem('glassEffects', glassEffects.toString());
-    localStorage.setItem('compactMode', compactMode.toString());
-    localStorage.setItem('accentColor', accentColor);
+    // The ThemeContext handles saving to localStorage, so we just update the state
+    // We don't need to manually set localStorage values here
     
     toast({
       title: "Appearance Settings Saved",
@@ -240,22 +215,12 @@ const Settings = () => {
   };
 
   const handleResetAppearance = () => {
-    // Reset to defaults
+    // Reset to defaults using our ThemeContext
     setReduceMotion(false);
     setHighContrast(false);
     setGlassEffects(true);
     setCompactMode(false);
-    setAccentColor('blue');
-    
-    // Apply defaults
-    localStorage.setItem('reduceMotion', 'false');
-    localStorage.setItem('highContrast', 'false');
-    localStorage.setItem('glassEffects', 'true');
-    localStorage.setItem('compactMode', 'false');
-    localStorage.setItem('accentColor', 'blue');
-    
-    document.documentElement.classList.remove('high-contrast', 'compact-mode', 'reduce-motion');
-    document.documentElement.setAttribute('data-accent', 'blue');
+    setAccentColor('indigo');
     
     toast({
       title: "Appearance Reset",
@@ -373,7 +338,7 @@ const Settings = () => {
   };
 
   const handleExportSettings = () => {
-    // Get all settings from localStorage
+    // Get all settings from localStorage and ThemeContext
     const settings = {
       appearance: {
         theme,
@@ -381,13 +346,13 @@ const Settings = () => {
         highContrast,
         glassEffects,
         compactMode,
-        accentColor
+        accentColor,
+        fontScale,
+        colorScheme
       },
       preferences: {
         language,
         timezone,
-        fontScale,
-        colorScheme,
         dateFormat
       },
       layout: {
@@ -442,13 +407,13 @@ const Settings = () => {
           setGlassEffects(settings.appearance.glassEffects);
           setCompactMode(settings.appearance.compactMode);
           setAccentColor(settings.appearance.accentColor);
+          setFontScale(settings.appearance.fontScale);
+          setColorScheme(settings.appearance.colorScheme);
         }
         
         if (settings.preferences) {
           setLanguage(settings.preferences.language);
           setTimezone(settings.preferences.timezone);
-          setFontScale(settings.preferences.fontScale);
-          setColorScheme(settings.preferences.colorScheme);
           setDateFormat(settings.preferences.dateFormat);
         }
         
@@ -478,12 +443,10 @@ const Settings = () => {
           description: "Your settings have been imported successfully.",
         });
         
-        // Save all the imported settings
-        handleSaveAppearance();
-        handleSavePreferences();
-        handleSaveLayout();
+        // Save all the imported settings to persist them
         handleSaveNotifications();
         handleSaveSecurity();
+        handleSaveLayout();
         
         sonnerToast.success("Settings have been imported and applied successfully");
       } catch (error) {
@@ -544,7 +507,7 @@ const Settings = () => {
         </TabsList>
 
         <TabsContent value="appearance" className="animate-fade-in">
-          <Card className="p-6 glass">
+          <Card className={`p-6 ${glassEffects ? 'glass' : ''}`}>
             <h2 className="text-2xl font-bold mb-6 gradient-text">Appearance Settings</h2>
             
             <div className="space-y-6">
@@ -614,7 +577,7 @@ const Settings = () => {
                   <p className="text-sm text-muted-foreground">Choose a custom accent color for the UI</p>
                 </div>
                 <div className="flex space-x-2">
-                  {['blue', 'purple', 'green', 'red', 'orange'].map(color => (
+                  {['indigo', 'purple', 'green', 'red', 'orange', 'blue'].map(color => (
                     <button 
                       key={color}
                       className={`w-6 h-6 rounded-full ${
@@ -622,7 +585,8 @@ const Settings = () => {
                         color === 'purple' ? 'bg-purple-500' :
                         color === 'green' ? 'bg-green-500' :
                         color === 'red' ? 'bg-red-500' :
-                        'bg-orange-500'
+                        color === 'orange' ? 'bg-orange-500' :
+                        'bg-indigo-500'
                       } hover:scale-110 transition-transform ${
                         accentColor === color ? 'ring-2 ring-offset-2 ring-primary' : ''
                       }`}
@@ -961,360 +925,4 @@ const Settings = () => {
         
         <TabsContent value="security" className="animate-fade-in">
           <Card className="p-6 glass">
-            <h2 className="text-2xl font-bold mb-6 gradient-text">Security Settings</h2>
-            <p className="text-muted-foreground mb-4">Manage your account security and privacy</p>
-            
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Two-Factor Authentication</h3>
-                  <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
-                </div>
-                <Switch 
-                  checked={twoFactorAuth}
-                  onCheckedChange={setTwoFactorAuth}
-                  className="hover-scale" 
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Session Timeout</h3>
-                  <p className="text-sm text-muted-foreground">Automatically logout after period of inactivity</p>
-                </div>
-                <Select 
-                  value={sessionTimeout}
-                  onValueChange={setSessionTimeout}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Select timeout" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                    <SelectItem value="60">1 hour</SelectItem>
-                    <SelectItem value="120">2 hours</SelectItem>
-                    <SelectItem value="never">Never</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Login History</h3>
-                  <p className="text-sm text-muted-foreground">View and manage your login history</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="hover-scale"
-                  onClick={() => {
-                    toast({
-                      title: "Login History",
-                      description: "Your login history will be displayed here in the future.",
-                    });
-                  }}
-                >
-                  View History
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Password Requirements</h3>
-                  <p className="text-sm text-muted-foreground">Set minimum requirements for passwords</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  className="hover-scale"
-                  onClick={() => {
-                    toast({
-                      title: "Password Requirements",
-                      description: "Password requirement settings will be available in the future.",
-                    });
-                  }}
-                >
-                  Configure
-                </Button>
-              </div>
-            </div>
-            
-            <div className="mt-8 grid grid-cols-2 gap-4">
-              <Button 
-                variant="destructive" 
-                className="hover-scale"
-                onClick={() => {
-                  toast({
-                    title: "All Sessions Revoked",
-                    description: "You've been logged out from all devices.",
-                  });
-                }}
-              >
-                Revoke All Sessions
-              </Button>
-              <Button 
-                className="hover-scale"
-                onClick={handleSaveSecurity}
-              >
-                Save Changes
-              </Button>
-            </div>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="preferences" className="animate-fade-in">
-          <Card className="p-6 glass">
-            <h2 className="text-2xl font-bold mb-6 gradient-text">User Preferences</h2>
-            <p className="text-muted-foreground mb-4">Customize your application experience</p>
-            
-            <div className="space-y-6">
-              <div className="grid gap-2">
-                <Label htmlFor="language">Language</Label>
-                <Select 
-                  value={language} 
-                  onValueChange={setLanguage}
-                >
-                  <SelectTrigger id="language" className="w-full">
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="spanish">Spanish</SelectItem>
-                    <SelectItem value="french">French</SelectItem>
-                    <SelectItem value="german">German</SelectItem>
-                    <SelectItem value="japanese">Japanese</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="timezone">Timezone</Label>
-                <Select 
-                  value={timezone} 
-                  onValueChange={setTimezone}
-                >
-                  <SelectTrigger id="timezone" className="w-full">
-                    <SelectValue placeholder="Select timezone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="utc">UTC</SelectItem>
-                    <SelectItem value="est">Eastern Standard Time (EST)</SelectItem>
-                    <SelectItem value="cst">Central Standard Time (CST)</SelectItem>
-                    <SelectItem value="mst">Mountain Standard Time (MST)</SelectItem>
-                    <SelectItem value="pst">Pacific Standard Time (PST)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="font-scale">Font Size</Label>
-                <Select 
-                  value={fontScale} 
-                  onValueChange={setFontScale}
-                >
-                  <SelectTrigger id="font-scale" className="w-full">
-                    <SelectValue placeholder="Select font size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0.8">Small</SelectItem>
-                    <SelectItem value="0.9">Medium-Small</SelectItem>
-                    <SelectItem value="1">Normal</SelectItem>
-                    <SelectItem value="1.1">Medium-Large</SelectItem>
-                    <SelectItem value="1.2">Large</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="color-scheme">Color Scheme</Label>
-                <Select 
-                  value={colorScheme} 
-                  onValueChange={setColorScheme}
-                >
-                  <SelectTrigger id="color-scheme" className="w-full">
-                    <SelectValue placeholder="Select color scheme" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default</SelectItem>
-                    <SelectItem value="blue">Blue</SelectItem>
-                    <SelectItem value="green">Green</SelectItem>
-                    <SelectItem value="purple">Purple</SelectItem>
-                    <SelectItem value="red">Red</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="date-format">Date Format</Label>
-                <Select 
-                  value={dateFormat} 
-                  onValueChange={setDateFormat}
-                >
-                  <SelectTrigger id="date-format" className="w-full">
-                    <SelectValue placeholder="Select date format" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mdy">MM/DD/YYYY</SelectItem>
-                    <SelectItem value="dmy">DD/MM/YYYY</SelectItem>
-                    <SelectItem value="ymd">YYYY/MM/DD</SelectItem>
-                    <SelectItem value="text">Month DD, YYYY</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="mt-8 grid grid-cols-2 gap-4">
-              <Button 
-                variant="outline" 
-                className="hover-scale" 
-                onClick={() => {
-                  setLanguage('english');
-                  setTimezone('utc');
-                  setFontScale('1');
-                  setColorScheme('default');
-                  setDateFormat('mdy');
-                  document.documentElement.style.fontSize = '100%';
-                }}
-              >
-                Reset to Defaults
-              </Button>
-              <Button 
-                className="hover-scale"
-                onClick={handleSavePreferences}
-              >
-                Save Changes
-              </Button>
-            </div>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="layout" className="animate-fade-in">
-          <Card className="p-6 glass">
-            <h2 className="text-2xl font-bold mb-6 gradient-text">Layout Settings</h2>
-            <p className="text-muted-foreground mb-4">Customize your workspace layout</p>
-            
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Compact Sidebar</h3>
-                  <p className="text-sm text-muted-foreground">Use a smaller sidebar with icons only</p>
-                </div>
-                <Switch 
-                  checked={compactSidebar}
-                  onCheckedChange={setCompactSidebar}
-                  className="hover-scale" 
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Fixed Header</h3>
-                  <p className="text-sm text-muted-foreground">Keep the header fixed when scrolling</p>
-                </div>
-                <Switch 
-                  checked={fixedHeader}
-                  onCheckedChange={setFixedHeader}
-                  className="hover-scale" 
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Show Quick Actions</h3>
-                  <p className="text-sm text-muted-foreground">Display quick action buttons in the header</p>
-                </div>
-                <Switch 
-                  checked={showQuickActions}
-                  onCheckedChange={setShowQuickActions}
-                  className="hover-scale" 
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Tabbed Interface</h3>
-                  <p className="text-sm text-muted-foreground">Use tabs for navigation between sections</p>
-                </div>
-                <Switch 
-                  checked={tabbedInterface}
-                  onCheckedChange={setTabbedInterface}
-                  className="hover-scale" 
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-medium">Dashboard Layout</h3>
-                  <p className="text-sm text-muted-foreground">Choose your preferred dashboard layout</p>
-                </div>
-                <Select
-                  value={dashboardLayout}
-                  onValueChange={setDashboardLayout}
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Select layout" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="grid">Grid</SelectItem>
-                    <SelectItem value="list">List</SelectItem>
-                    <SelectItem value="compact">Compact</SelectItem>
-                    <SelectItem value="masonry">Masonry</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="mt-8 grid grid-cols-2 gap-4">
-              <Button 
-                variant="outline" 
-                className="hover-scale"
-                onClick={handleResetLayout}
-              >
-                Reset to Defaults
-              </Button>
-              <Button 
-                className="hover-scale"
-                onClick={handleSaveLayout}
-              >
-                Save Changes
-              </Button>
-            </div>
-            
-            <div className="mt-8 border-t pt-6">
-              <h3 className="text-lg font-medium mb-4">Import/Export Settings</h3>
-              <div className="flex flex-wrap gap-4">
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2"
-                  onClick={handleExportSettings}
-                >
-                  <Download className="h-4 w-4" />
-                  Export Settings
-                </Button>
-                
-                <div className="relative">
-                  <Input
-                    type="file"
-                    id="import-settings"
-                    className="hidden"
-                    accept=".json"
-                    onChange={handleImportSettings}
-                  />
-                  <Button
-                    variant="outline"
-                    className="flex items-center gap-2"
-                    onClick={() => document.getElementById('import-settings')?.click()}
-                  >
-                    <Upload className="h-4 w-4" />
-                    Import Settings
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
-
-export default Settings;
+            <h2 className="text-2xl

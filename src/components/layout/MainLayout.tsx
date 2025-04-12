@@ -14,7 +14,11 @@ import { motion, AnimatePresence } from 'framer-motion';
  */
 export function MainLayout() {
   const { signOut } = useAuth();
-  const { theme, setTheme } = useTheme();
+  const { 
+    theme, 
+    toggleTheme,
+    compactMode
+  } = useTheme();
   const location = useLocation();
   const [pageKey, setPageKey] = useState(location.pathname);
   
@@ -23,15 +27,8 @@ export function MainLayout() {
     setPageKey(location.pathname);
   }, [location.pathname]);
   
-  /**
-   * Toggle between light and dark theme
-   */
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
-  
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    <div className={`flex h-screen w-full overflow-hidden bg-background ${compactMode ? 'compact-mode' : ''}`}>
       <Sidebar />
       <main className="flex-1 overflow-auto relative">
         <AnimatePresence mode="wait">
