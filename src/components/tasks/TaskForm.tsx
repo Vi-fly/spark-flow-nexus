@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -308,7 +309,7 @@ export function TaskForm({ open, onOpenChange, onTaskAdded, editTask }: TaskForm
                   <SelectValue placeholder="Select contact" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Not assigned</SelectItem>
+                  <SelectItem value="none">Not assigned</SelectItem>
                   {contacts.map((contact) => (
                     <SelectItem key={contact.id} value={contact.id}>
                       {contact.name}
@@ -330,7 +331,7 @@ export function TaskForm({ open, onOpenChange, onTaskAdded, editTask }: TaskForm
                   <SelectValue placeholder="Select contact" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No related contact</SelectItem>
+                  <SelectItem value="none">No related contact</SelectItem>
                   {contacts.map((contact) => (
                     <SelectItem key={contact.id} value={contact.id}>
                       {contact.name}

@@ -133,16 +133,18 @@ export const createTask = async (taskInput: TaskInput): Promise<Task | null> => 
       return null;
     }
     
-    // Prepare the task with the user_id
-    const task = {
+    // Process special values like 'none' for optional fields
+    const processedTask = {
       ...taskInput,
+      assigned_to: taskInput.assigned_to === 'none' ? null : taskInput.assigned_to,
+      contact_id: taskInput.contact_id === 'none' ? null : taskInput.contact_id,
       user_id: user.id
     };
     
     // Insert task into Supabase
     const { data, error } = await supabase
       .from('tasks')
-      .insert(task)
+      .insert(processedTask)
       .select()
       .single();
     
@@ -174,10 +176,17 @@ export const createTask = async (taskInput: TaskInput): Promise<Task | null> => 
  */
 export const updateTask = async (id: string, taskInput: Partial<TaskInput>): Promise<Task | null> => {
   try {
+    // Process special values like 'none' for optional fields
+    const processedTask = {
+      ...taskInput,
+      assigned_to: taskInput.assigned_to === 'none' ? null : taskInput.assigned_to,
+      contact_id: taskInput.contact_id === 'none' ? null : taskInput.contact_id,
+    };
+    
     // Update task in Supabase
     const { data, error } = await supabase
       .from('tasks')
-      .update(taskInput)
+      .update(processedTask)
       .eq('id', id)
       .select()
       .single();

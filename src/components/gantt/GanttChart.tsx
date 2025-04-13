@@ -18,14 +18,12 @@ interface GanttTaskProps {
   onTaskClick: (task: Task) => void;
 }
 
-// Component for a single task bar in the Gantt chart
 const GanttTaskBar: React.FC<GanttTaskProps> = ({ task, startDate, daysToShow, columnWidth, onTaskClick }) => {
   const taskStartDate = task.deadline ? new Date(task.deadline) : new Date();
-  taskStartDate.setDate(taskStartDate.getDate() - 3); // For demo purposes, start 3 days before deadline
+  taskStartDate.setDate(taskStartDate.getDate() - 3);
   
   const taskEndDate = new Date(task.deadline || new Date());
   
-  // Calculate position and width
   const diffTime = Math.abs(taskStartDate.getTime() - startDate.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
@@ -35,12 +33,10 @@ const GanttTaskBar: React.FC<GanttTaskProps> = ({ task, startDate, daysToShow, c
   const left = diffDays * columnWidth;
   const width = Math.min(taskDurationDays * columnWidth, daysToShow * columnWidth - left);
   
-  // Only show tasks that fall within the visible range
   if (diffDays > daysToShow || diffDays + taskDurationDays < 0) {
     return null;
   }
   
-  // Color based on priority
   const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case 'high': return 'bg-red-500';
@@ -50,7 +46,6 @@ const GanttTaskBar: React.FC<GanttTaskProps> = ({ task, startDate, daysToShow, c
     }
   };
   
-  // Color based on status
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase();
     switch (statusLower) {
@@ -61,7 +56,7 @@ const GanttTaskBar: React.FC<GanttTaskProps> = ({ task, startDate, daysToShow, c
       case 'on hold': return 'border-amber-400';
       case 'done':
       case 'completed': return 'border-green-400';
-      case 'reviewed & approved': return 'border-purple-400';
+      case 'reviewed': return 'border-purple-400';
       default: return 'border-slate-400';
     }
   };
@@ -81,7 +76,6 @@ const GanttTaskBar: React.FC<GanttTaskProps> = ({ task, startDate, daysToShow, c
   );
 };
 
-// Main Gantt chart component
 export const GanttChart: React.FC = () => {
   const { toast: uiToast } = useToast();
   const [startDate, setStartDate] = useState(new Date());
@@ -93,24 +87,21 @@ export const GanttChart: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   
-  // Generate dates for the header
   const dates = Array.from({ length: daysToShow }, (_, i) => {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
     return date;
   });
   
-  // Format date for display
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   };
   
   const isWeekend = (date: Date): boolean => {
     const day = date.getDay();
-    return day === 0 || day === 6; // 0 is Sunday, 6 is Saturday
+    return day === 0 || day === 6;
   };
   
-  // Load tasks from Supabase
   useEffect(() => {
     const fetchTasks = async () => {
       try {
@@ -124,10 +115,8 @@ export const GanttChart: React.FC = () => {
           throw error;
         }
         
-        // Transform the data with proper type casting
         const formattedTasks = data.map(task => ({
           ...task,
-          // Map status to expected enum values
           status: mapStatusValue(task.status),
           priority: mapPriorityValue(task.priority),
           id: task.id,
@@ -158,33 +147,28 @@ export const GanttChart: React.FC = () => {
     fetchTasks();
   }, [uiToast]);
   
-  // Helper function to map status values to our expected enum types
   const mapStatusValue = (status: string): 'todo' | 'in-progress' | 'done' => {
     const statusLower = status.toLowerCase();
     if (statusLower === 'not started' || statusLower === 'todo') return 'todo';
     if (statusLower === 'in progress' || statusLower === 'in-progress') return 'in-progress';
-    if (statusLower === 'completed' || statusLower === 'done' || statusLower === 'reviewed & approved') return 'done';
-    return 'todo'; // Default value
+    if (statusLower === 'completed' || statusLower === 'done' || statusLower === 'reviewed') return 'done';
+    return 'todo';
   };
   
-  // Helper function to map priority values to our expected enum types
   const mapPriorityValue = (priority: string): 'low' | 'medium' | 'high' => {
     const priorityLower = priority.toLowerCase();
     if (priorityLower === 'low') return 'low';
     if (priorityLower === 'medium') return 'medium';
     if (priorityLower === 'high') return 'high';
-    return 'medium'; // Default value
+    return 'medium';
   };
   
-  // Filter tasks based on current filter and search query
   const filteredTasks = tasks.filter(task => {
-    // Filter by status
     if (filter !== 'all') {
       const statusMatch = task.status.toLowerCase().includes(filter.toLowerCase());
       if (!statusMatch) return false;
     }
     
-    // Filter by search query
     if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
@@ -192,7 +176,6 @@ export const GanttChart: React.FC = () => {
     return true;
   });
   
-  // Handle date navigation
   const navigateToPreviousPeriod = () => {
     const newStartDate = new Date(startDate);
     newStartDate.setDate(newStartDate.getDate() - daysToShow);
@@ -209,7 +192,6 @@ export const GanttChart: React.FC = () => {
     setStartDate(new Date());
   };
   
-  // Handle task click
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
     uiToast({
@@ -218,7 +200,6 @@ export const GanttChart: React.FC = () => {
     });
   };
   
-  // Handle view change
   const handleViewChange = (value: string) => {
     switch (value) {
       case 'day':
@@ -239,9 +220,7 @@ export const GanttChart: React.FC = () => {
     }
   };
   
-  // Handle adding a new task
   const handleAddTask = () => {
-    // Navigate to the tasks page with a flag to open the new task form
     window.location.href = '/tasks?new=true';
   };
   
@@ -295,9 +274,9 @@ export const GanttChart: React.FC = () => {
               <SelectItem value="all">All Tasks</SelectItem>
               <SelectItem value="todo">Not Started</SelectItem>
               <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="on hold">On Hold</SelectItem>
+              <SelectItem value="on-hold">On Hold</SelectItem>
               <SelectItem value="done">Completed</SelectItem>
-              <SelectItem value="reviewed & approved">Reviewed & Approved</SelectItem>
+              <SelectItem value="reviewed">Reviewed & Approved</SelectItem>
             </SelectContent>
           </Select>
           
@@ -323,7 +302,6 @@ export const GanttChart: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto pb-4">
-            {/* Gantt header */}
             <div className="flex min-w-max">
               <div className="w-64 shrink-0 border-r border-border py-2 px-4 font-medium">
                 Task
@@ -344,9 +322,7 @@ export const GanttChart: React.FC = () => {
               </div>
             </div>
             
-            {/* Gantt body */}
             <div className="flex min-w-max">
-              {/* Task names */}
               <div className="w-64 shrink-0 border-r border-border">
                 {filteredTasks.map((task, index) => (
                   <div 
@@ -360,7 +336,6 @@ export const GanttChart: React.FC = () => {
                 ))}
               </div>
               
-              {/* Timeline grid */}
               <div className="relative">
                 <div className="flex">
                   {dates.map((date, index) => (
@@ -372,7 +347,6 @@ export const GanttChart: React.FC = () => {
                   ))}
                 </div>
                 
-                {/* Task bars */}
                 {filteredTasks.map((task, index) => (
                   <div 
                     key={task.id} 
