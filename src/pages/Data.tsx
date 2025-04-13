@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { databaseConnector } from '@/utils/databaseConnector';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { 
   Database, 
   Table as TableIcon, 
@@ -28,7 +29,7 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 
-// Sample data structure for the demo
+// Table info data structure
 interface TableInfo {
   name: string;
   count: number;
@@ -41,7 +42,7 @@ interface TableData {
 }
 
 const Data = () => {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
@@ -55,113 +56,67 @@ const Data = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [viewMode, setViewMode] = useState<'table' | 'grid' | 'chart'>('table');
   
-  // Generate fake data for demo purposes
+  // Fetch data from Supabase
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       
       try {
-        // Generate mock tables info
-        const mockTables: TableInfo[] = [
-          { 
-            name: 'tasks', 
-            count: 87, 
-            lastUpdated: '2025-04-10T15:30:00Z',
-            fields: ['id', 'title', 'description', 'status', 'priority', 'assigned_to', 'created_at']
-          },
-          { 
-            name: 'contacts', 
-            count: 42, 
-            lastUpdated: '2025-04-09T12:15:00Z',
-            fields: ['id', 'name', 'email', 'phone', 'company', 'role', 'created_at']
-          },
-          { 
-            name: 'discussions', 
-            count: 28, 
-            lastUpdated: '2025-04-11T09:45:00Z',
-            fields: ['id', 'title', 'content', 'user_id', 'upvotes', 'downvotes', 'created_at']
-          },
-          { 
-            name: 'users', 
-            count: 15, 
-            lastUpdated: '2025-04-08T14:20:00Z',
-            fields: ['id', 'name', 'email', 'role', 'last_login', 'created_at']
-          },
-          { 
-            name: 'projects', 
-            count: 9, 
-            lastUpdated: '2025-04-07T16:50:00Z',
-            fields: ['id', 'name', 'description', 'status', 'start_date', 'end_date', 'created_at']
+        // List available tables
+        const { data: tablesData, error: tablesError } = await supabase
+          .from('_metadata')
+          .select('*');
+
+        // This is a fallback since we can't directly query for table metadata with the client
+        // We'll manually check for known tables since _metadata may not exist
+        const knownTables = ['contacts', 'tasks'];
+        const tableInfoPromises = knownTables.map(async (tableName) => {
+          try {
+            // Count records
+            const { count, error: countError } = await supabase
+              .from(tableName)
+              .select('*', { count: 'exact', head: true });
+            
+            if (countError) throw countError;
+            
+            // Get a sample row to determine fields
+            const { data: sampleData, error: sampleError } = await supabase
+              .from(tableName)
+              .select('*')
+              .limit(1);
+            
+            if (sampleError) throw sampleError;
+            
+            const fields = sampleData && sampleData.length > 0 
+              ? Object.keys(sampleData[0]) 
+              : [];
+            
+            return {
+              name: tableName,
+              count: count || 0,
+              lastUpdated: new Date().toISOString(),
+              fields
+            };
+          } catch (error) {
+            console.error(`Error fetching info for table ${tableName}:`, error);
+            return null;
           }
-        ];
+        });
         
-        setTables(mockTables);
+        const tableInfoResults = await Promise.all(tableInfoPromises);
+        const validTableInfo = tableInfoResults.filter(Boolean) as TableInfo[];
         
-        // Generate mock data for each table
-        const mockData: TableData = {};
+        setTables(validTableInfo);
         
-        // Tasks data
-        mockData.tasks = Array(87).fill(0).map((_, i) => ({
-          id: `task-${i + 1}`,
-          title: `Task ${i + 1}`,
-          description: `Description for task ${i + 1}`,
-          status: ['todo', 'in-progress', 'done', 'blocked'][Math.floor(Math.random() * 4)],
-          priority: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-          assigned_to: `user-${Math.floor(Math.random() * 15) + 1}`,
-          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
-        }));
-        
-        // Contacts data
-        mockData.contacts = Array(42).fill(0).map((_, i) => ({
-          id: `contact-${i + 1}`,
-          name: `Contact ${i + 1}`,
-          email: `contact${i + 1}@example.com`,
-          phone: `+1-${Math.floor(Math.random() * 1000)}-${Math.floor(Math.random() * 1000)}-${Math.floor(Math.random() * 10000)}`,
-          company: `Company ${Math.floor(Math.random() * 10) + 1}`,
-          role: ['Manager', 'Developer', 'Designer', 'CEO', 'CTO'][Math.floor(Math.random() * 5)],
-          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
-        }));
-        
-        // Discussions data
-        mockData.discussions = Array(28).fill(0).map((_, i) => ({
-          id: `discussion-${i + 1}`,
-          title: `Discussion ${i + 1}`,
-          content: `Content for discussion ${i + 1}`,
-          user_id: `user-${Math.floor(Math.random() * 15) + 1}`,
-          upvotes: Math.floor(Math.random() * 50),
-          downvotes: Math.floor(Math.random() * 10),
-          created_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
-        }));
-        
-        // Users data
-        mockData.users = Array(15).fill(0).map((_, i) => ({
-          id: `user-${i + 1}`,
-          name: `User ${i + 1}`,
-          email: `user${i + 1}@example.com`,
-          role: ['admin', 'user', 'manager'][Math.floor(Math.random() * 3)],
-          last_login: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString()
-        }));
-        
-        // Projects data
-        mockData.projects = Array(9).fill(0).map((_, i) => ({
-          id: `project-${i + 1}`,
-          name: `Project ${i + 1}`,
-          description: `Description for project ${i + 1}`,
-          status: ['planning', 'active', 'completed', 'on-hold'][Math.floor(Math.random() * 4)],
-          start_date: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString(),
-          end_date: new Date(Date.now() + Math.random() * 180 * 24 * 60 * 60 * 1000).toISOString(),
-          created_at: new Date(Date.now() - Math.random() * 120 * 24 * 60 * 60 * 1000).toISOString()
-        }));
-        
-        setTableData(mockData);
-        
-        if (mockTables.length > 0) {
-          setSelectedTable(mockTables[0].name);
+        if (validTableInfo.length > 0) {
+          setSelectedTable(validTableInfo[0].name);
+          
+          // Fetch data for the first table
+          await fetchTableData(validTableInfo[0].name);
         }
       } catch (error) {
         console.error("Error loading data:", error);
-        toast({
+        uiToast({
           title: "Error Loading Data",
           description: "There was a problem loading the database data.",
           variant: "destructive"
@@ -172,19 +127,52 @@ const Data = () => {
     };
     
     loadData();
-  }, [toast]);
+  }, [uiToast]);
   
-  const handleRefreshData = () => {
+  // Fetch data for a specific table
+  const fetchTableData = async (tableName: string) => {
     setIsLoading(true);
     
-    // Simulate data refresh
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*');
+      
+      if (error) throw error;
+      
+      // Update the tableData state with the fetched data
+      setTableData(prevData => ({
+        ...prevData,
+        [tableName]: data
+      }));
+    } catch (error) {
+      console.error(`Error fetching data from ${tableName}:`, error);
+      toast.error(`Failed to load data from ${tableName}`);
+    } finally {
       setIsLoading(false);
-      toast({
-        title: "Data Refreshed",
-        description: "The table data has been successfully refreshed."
-      });
-    }, 1000);
+    }
+  };
+  
+  // Handle table selection
+  const handleTableSelect = async (tableName: string) => {
+    setSelectedTable(tableName);
+    setFilterField('');
+    setFilterValue('');
+    setSortField('');
+    setSortDirection('asc');
+    setCurrentPage(1);
+    
+    // Check if we already have the data
+    if (!tableData[tableName]) {
+      await fetchTableData(tableName);
+    }
+  };
+  
+  const handleRefreshData = async () => {
+    if (!selectedTable) return;
+    
+    await fetchTableData(selectedTable);
+    toast.success("Data refreshed successfully");
   };
   
   const handleExportData = () => {
@@ -201,17 +189,10 @@ const Data = () => {
       linkElement.setAttribute('download', exportFileDefaultName);
       linkElement.click();
       
-      toast({
-        title: "Export Successful",
-        description: `Data from ${selectedTable} has been exported.`
-      });
+      toast.success(`Data from ${selectedTable} has been exported.`);
     } catch (error) {
       console.error("Error exporting data:", error);
-      toast({
-        title: "Export Failed",
-        description: "There was a problem exporting the data.",
-        variant: "destructive"
-      });
+      toast.error("There was a problem exporting the data.");
     }
   };
   
@@ -258,7 +239,7 @@ const Data = () => {
   }) : [];
   
   // Apply sorting
-  const sortedData = [...filteredData].sort((a, b) => {
+  const sortedData = [...(filteredData || [])].sort((a, b) => {
     if (!sortField) return 0;
     
     const aValue = a[sortField];
@@ -276,11 +257,11 @@ const Data = () => {
   });
   
   // Apply pagination
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
-  const paginatedData = sortedData.slice(
+  const totalPages = Math.ceil((sortedData?.length || 0) / itemsPerPage);
+  const paginatedData = sortedData?.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
-  );
+  ) || [];
   
   return (
     <div className="container mx-auto p-6 space-y-6 animate-fade-in">
@@ -315,14 +296,7 @@ const Data = () => {
                     key={table.name}
                     variant={selectedTable === table.name ? "default" : "ghost"}
                     className="w-full justify-start text-left pl-6 font-normal"
-                    onClick={() => {
-                      setSelectedTable(table.name);
-                      setFilterField('');
-                      setFilterValue('');
-                      setSortField('');
-                      setSortDirection('asc');
-                      setCurrentPage(1);
-                    }}
+                    onClick={() => handleTableSelect(table.name)}
                   >
                     <TableIcon className="h-4 w-4 mr-2" />
                     <span>{table.name}</span>
@@ -483,7 +457,12 @@ const Data = () => {
                               <TableRow key={index}>
                                 {fields.map(field => (
                                   <TableCell key={field}>
-                                    {row[field] !== undefined ? String(row[field]).substring(0, 50) : 'N/A'}
+                                    {row[field] !== undefined ? 
+                                      // Handle array display
+                                      Array.isArray(row[field]) ? 
+                                        JSON.stringify(row[field]) : 
+                                        String(row[field]).substring(0, 50) 
+                                      : 'N/A'}
                                   </TableCell>
                                 ))}
                               </TableRow>
@@ -495,7 +474,7 @@ const Data = () => {
                     
                     <div className="flex items-center justify-between mt-4">
                       <div className="text-sm text-muted-foreground">
-                        Showing {paginatedData.length} of {filteredData.length} results
+                        Showing {paginatedData.length} of {filteredData?.length || 0} results
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button
@@ -582,7 +561,11 @@ const Data = () => {
                                 <div key={field} className="grid grid-cols-3 gap-2">
                                   <span className="text-xs text-muted-foreground col-span-1">{field}:</span>
                                   <span className="text-xs truncate col-span-2">
-                                    {row[field] !== undefined ? String(row[field]).substring(0, 50) : 'N/A'}
+                                    {row[field] !== undefined ? 
+                                      Array.isArray(row[field]) ? 
+                                        JSON.stringify(row[field]) : 
+                                        String(row[field]).substring(0, 50) 
+                                      : 'N/A'}
                                   </span>
                                 </div>
                               ))}

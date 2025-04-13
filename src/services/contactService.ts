@@ -54,8 +54,22 @@ export const getAllContacts = async (): Promise<Contact[]> => {
 /**
  * Create a new contact
  */
-export const createContact = async (contact: ContactInput): Promise<Contact | null> => {
+export const createContact = async (contactInput: ContactInput): Promise<Contact | null> => {
   try {
+    // Get the user's ID from the auth context
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast.error('You must be logged in to create a contact');
+      return null;
+    }
+    
+    // Prepare the contact with the user_id
+    const contact = {
+      ...contactInput,
+      user_id: user.id
+    };
+    
     // Insert contact into Supabase
     const { data, error } = await supabase
       .from('contacts')

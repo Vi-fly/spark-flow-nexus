@@ -11,14 +11,25 @@ export type Task = {
   user_id: string;
   title: string;
   description?: string | null;
-  status: 'todo' | 'in-progress' | 'done';
-  priority: 'low' | 'medium' | 'high';
+  status: string;
+  priority: string;
   deadline?: string | null;
   estimated_time?: string | null;
   assigned_to?: string | null;
   contact_id?: string | null;
   created_at: string;
   updated_at: string;
+  category?: string | null;
+  expected_outcome?: string | null;
+  dependencies?: string | null;
+  required_resources?: string | null;
+  instructions?: string | null;
+  review_process?: string | null;
+  performance_metrics?: string | null;
+  support_contact?: string | null;
+  notes?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
 };
 
 // Define Task input type for creation/updates
@@ -42,8 +53,7 @@ export const getAllTasks = async (): Promise<Task[]> => {
       return [];
     }
     
-    // Return the tasks
-    return data || [];
+    return data as Task[] || [];
   } catch (error) {
     console.error('Unexpected error fetching tasks:', error);
     toast.error('Failed to load tasks');
@@ -70,8 +80,7 @@ export const getTaskById = async (id: string): Promise<Task | null> => {
       return null;
     }
     
-    // Return the task
-    return data;
+    return data as Task;
   } catch (error) {
     console.error('Unexpected error fetching task:', error);
     toast.error('Failed to load task');
@@ -82,8 +91,22 @@ export const getTaskById = async (id: string): Promise<Task | null> => {
 /**
  * Create a new task
  */
-export const createTask = async (task: TaskInput): Promise<Task | null> => {
+export const createTask = async (taskInput: TaskInput): Promise<Task | null> => {
   try {
+    // Get the user's ID from the auth context
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast.error('You must be logged in to create a task');
+      return null;
+    }
+    
+    // Prepare the task with the user_id
+    const task = {
+      ...taskInput,
+      user_id: user.id
+    };
+    
     // Insert task into Supabase
     const { data, error } = await supabase
       .from('tasks')
@@ -102,7 +125,7 @@ export const createTask = async (task: TaskInput): Promise<Task | null> => {
     toast.success('Task created successfully');
     
     // Return the created task
-    return data;
+    return data as Task;
   } catch (error) {
     console.error('Unexpected error creating task:', error);
     toast.error('Failed to create task');
@@ -113,12 +136,12 @@ export const createTask = async (task: TaskInput): Promise<Task | null> => {
 /**
  * Update an existing task
  */
-export const updateTask = async (id: string, task: Partial<TaskInput>): Promise<Task | null> => {
+export const updateTask = async (id: string, taskInput: Partial<TaskInput>): Promise<Task | null> => {
   try {
     // Update task in Supabase
     const { data, error } = await supabase
       .from('tasks')
-      .update(task)
+      .update(taskInput)
       .eq('id', id)
       .select()
       .single();
@@ -134,7 +157,7 @@ export const updateTask = async (id: string, task: Partial<TaskInput>): Promise<
     toast.success('Task updated successfully');
     
     // Return the updated task
-    return data;
+    return data as Task;
   } catch (error) {
     console.error('Unexpected error updating task:', error);
     toast.error('Failed to update task');

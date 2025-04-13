@@ -8,6 +8,8 @@ import { Calendar, ChevronLeft, ChevronRight, Download, Filter, Plus, Search } f
 import { Task } from '@/types/database.types';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface GanttTaskProps {
   task: Task;
@@ -41,7 +43,7 @@ const GanttTaskBar: React.FC<GanttTaskProps> = ({ task, startDate, daysToShow, c
   
   // Color based on priority
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
+    switch (priority.toLowerCase()) {
       case 'high': return 'bg-red-500';
       case 'medium': return 'bg-amber-500';
       case 'low': return 'bg-green-500';
@@ -51,10 +53,13 @@ const GanttTaskBar: React.FC<GanttTaskProps> = ({ task, startDate, daysToShow, c
   
   // Color based on status
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'todo': return 'border-slate-400';
-      case 'in-progress': return 'border-blue-400';
-      case 'done': return 'border-green-400';
+    const statusLower = status.toLowerCase();
+    switch (statusLower) {
+      case 'not started': return 'border-slate-400';
+      case 'in progress': return 'border-blue-400';
+      case 'on hold': return 'border-amber-400';
+      case 'completed': return 'border-green-400';
+      case 'reviewed & approved': return 'border-purple-400';
       default: return 'border-slate-400';
     }
   };
@@ -76,7 +81,7 @@ const GanttTaskBar: React.FC<GanttTaskProps> = ({ task, startDate, daysToShow, c
 
 // Main Gantt chart component
 export const GanttChart: React.FC = () => {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const [startDate, setStartDate] = useState(new Date());
   const [daysToShow, setDaysToShow] = useState(14);
   const [columnWidth, setColumnWidth] = useState(80);
@@ -103,90 +108,43 @@ export const GanttChart: React.FC = () => {
     return day === 0 || day === 6; // 0 is Sunday, 6 is Saturday
   };
   
-  // Load tasks on component mount
+  // Load tasks from Supabase
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        // In a real app, you would fetch from an API
-        // For demo purposes, we'll create mock data
-        const mockTasks: Task[] = [
-          {
-            id: "1",
-            user_id: "user1",
-            title: "Design mockups",
-            description: "Create initial design mockups for the application",
-            status: "done",
-            priority: "high",
-            deadline: new Date(new Date().setDate(new Date().getDate() + 2)).toISOString(),
-            estimated_time: "8h",
-            assigned_to: "John Doe",
-            contact_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: "2",
-            user_id: "user1",
-            title: "Database schema",
-            description: "Define database schema for the application",
-            status: "in-progress",
-            priority: "medium",
-            deadline: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString(),
-            estimated_time: "12h",
-            assigned_to: "Jane Smith",
-            contact_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: "3",
-            user_id: "user1",
-            title: "API implementation",
-            description: "Implement RESTful API endpoints",
-            status: "todo",
-            priority: "high",
-            deadline: new Date(new Date().setDate(new Date().getDate() + 7)).toISOString(),
-            estimated_time: "24h",
-            assigned_to: "Bob Johnson",
-            contact_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: "4",
-            user_id: "user1",
-            title: "Frontend development",
-            description: "Implement user interface components",
-            status: "todo",
-            priority: "medium",
-            deadline: new Date(new Date().setDate(new Date().getDate() + 10)).toISOString(),
-            estimated_time: "40h",
-            assigned_to: "Alice Brown",
-            contact_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: "5",
-            user_id: "user1",
-            title: "Testing",
-            description: "Perform unit and integration testing",
-            status: "todo",
-            priority: "low",
-            deadline: new Date(new Date().setDate(new Date().getDate() + 12)).toISOString(),
-            estimated_time: "16h",
-            assigned_to: "Charlie Green",
-            contact_id: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ];
+        setLoading(true);
         
-        setTasks(mockTasks);
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*');
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Transform the data if needed
+        const formattedTasks = data.map(task => ({
+          ...task,
+          // Ensure task has all required fields
+          id: task.id,
+          title: task.title,
+          description: task.description || null,
+          status: task.status || 'Not Started',
+          priority: task.priority || 'Medium',
+          deadline: task.deadline,
+          estimated_time: task.estimated_time || null,
+          assigned_to: task.assigned_to || null,
+          contact_id: task.contact_id || null,
+          created_at: task.created_at,
+          updated_at: task.updated_at || task.created_at,
+          user_id: task.user_id
+        }));
+        
+        setTasks(formattedTasks);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching tasks:', error);
-        toast({
+        uiToast({
           title: "Error loading tasks",
           description: "Could not load tasks for the Gantt chart",
           variant: "destructive"
@@ -196,13 +154,14 @@ export const GanttChart: React.FC = () => {
     };
     
     fetchTasks();
-  }, [toast]);
+  }, [uiToast]);
   
   // Filter tasks based on current filter and search query
   const filteredTasks = tasks.filter(task => {
     // Filter by status
-    if (filter !== 'all' && task.status !== filter) {
-      return false;
+    if (filter !== 'all') {
+      const statusMatch = task.status.toLowerCase().includes(filter.toLowerCase());
+      if (!statusMatch) return false;
     }
     
     // Filter by search query
@@ -233,7 +192,7 @@ export const GanttChart: React.FC = () => {
   // Handle task click
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
-    toast({
+    uiToast({
       title: "Task selected",
       description: task.title,
     });
@@ -258,6 +217,12 @@ export const GanttChart: React.FC = () => {
         setDaysToShow(14);
         setColumnWidth(80);
     }
+  };
+  
+  // Handle adding a new task
+  const handleAddTask = () => {
+    // Navigate to the tasks page with a flag to open the new task form
+    window.location.href = '/tasks?new=true';
   };
   
   return (
@@ -308,9 +273,11 @@ export const GanttChart: React.FC = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Tasks</SelectItem>
-              <SelectItem value="todo">To Do</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="done">Done</SelectItem>
+              <SelectItem value="not started">Not Started</SelectItem>
+              <SelectItem value="in progress">In Progress</SelectItem>
+              <SelectItem value="on hold">On Hold</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="reviewed & approved">Reviewed & Approved</SelectItem>
             </SelectContent>
           </Select>
           
@@ -322,7 +289,7 @@ export const GanttChart: React.FC = () => {
             <Download className="h-4 w-4" />
           </Button>
           
-          <Button>
+          <Button onClick={handleAddTask}>
             <Plus className="h-4 w-4 mr-2" />
             Add Task
           </Button>
@@ -368,7 +335,7 @@ export const GanttChart: React.FC = () => {
                     onClick={() => handleTaskClick(task)}
                   >
                     <div className="font-medium truncate">{task.title}</div>
-                    <div className="text-xs text-muted-foreground">{task.assigned_to}</div>
+                    <div className="text-xs text-muted-foreground">{task.assigned_to || 'Unassigned'}</div>
                   </div>
                 ))}
               </div>
