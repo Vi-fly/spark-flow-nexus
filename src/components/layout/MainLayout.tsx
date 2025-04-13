@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -16,10 +16,11 @@ import { motion, AnimatePresence } from 'framer-motion';
  * - Displays the main content area with page animations
  * - Provides theme toggle and logout buttons
  * - Applies global theme settings from ThemeContext
+ * - Redirects to auth page if user is not authenticated
  */
 export function MainLayout() {
   // Get authentication context for user-related functions
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   
   // Get theme context for appearance and layout settings
   const { 
@@ -41,6 +42,11 @@ export function MainLayout() {
   useEffect(() => {
     setPageKey(location.pathname);
   }, [location.pathname]);
+
+  // Redirect to auth page if not logged in
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   /**
    * Get animation properties based on user's reduced motion preference

@@ -9,110 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      attendance: {
-        Row: {
-          created_at: string
-          date: string
-          end_time: string | null
-          id: string
-          notes: string | null
-          start_time: string
-          status: string
-          task_id: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          date?: string
-          end_time?: string | null
-          id?: string
-          notes?: string | null
-          start_time?: string
-          status?: string
-          task_id?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          date?: string
-          end_time?: string | null
-          id?: string
-          notes?: string | null
-          start_time?: string
-          status?: string
-          task_id?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "attendance_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       contacts: {
         Row: {
+          address: string | null
           company: string | null
-          created_at: string
+          created_at: string | null
           email: string | null
           id: string
           name: string
           notes: string | null
           phone: string | null
           role: string | null
-          updated_at: string
+          skills: string[] | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
+          address?: string | null
           company?: string | null
-          created_at?: string
+          created_at?: string | null
           email?: string | null
           id?: string
           name: string
           notes?: string | null
           phone?: string | null
           role?: string | null
-          updated_at?: string
+          skills?: string[] | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
+          address?: string | null
           company?: string | null
-          created_at?: string
+          created_at?: string | null
           email?: string | null
           id?: string
           name?: string
           notes?: string | null
           phone?: string | null
           role?: string | null
-          updated_at?: string
+          skills?: string[] | null
+          updated_at?: string | null
           user_id?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          id: string
-          updated_at: string
-          username: string | null
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          updated_at?: string
-          username?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          updated_at?: string
-          username?: string | null
         }
         Relationships: []
       }
@@ -120,7 +58,7 @@ export type Database = {
         Row: {
           assigned_to: string | null
           contact_id: string | null
-          created_at: string
+          created_at: string | null
           deadline: string | null
           description: string | null
           estimated_time: string | null
@@ -128,27 +66,27 @@ export type Database = {
           priority: string
           status: string
           title: string
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           assigned_to?: string | null
           contact_id?: string | null
-          created_at?: string
+          created_at?: string | null
           deadline?: string | null
           description?: string | null
           estimated_time?: string | null
           id?: string
-          priority?: string
-          status?: string
+          priority: string
+          status: string
           title: string
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           assigned_to?: string | null
           contact_id?: string | null
-          created_at?: string
+          created_at?: string | null
           deadline?: string | null
           description?: string | null
           estimated_time?: string | null
@@ -156,10 +94,17 @@ export type Database = {
           priority?: string
           status?: string
           title?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tasks_contact_id_fkey"
             columns: ["contact_id"]
@@ -174,7 +119,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_contacts_table: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      create_posts_table: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      create_tasks_table: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      drop_all_tables: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

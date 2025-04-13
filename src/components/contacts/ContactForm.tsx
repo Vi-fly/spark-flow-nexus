@@ -16,26 +16,52 @@ import {
 import { toast } from 'sonner';
 import { PlusCircle, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { createContact, ContactInput } from '@/services/contactService';
 
+/**
+ * Props for ContactForm component
+ */
 type ContactFormProps = {
   onContactAdded: () => void;
 };
 
+/**
+ * ContactForm component - Form for creating new contacts
+ * 
+ * Features:
+ * - Collects and validates contact information
+ * - Allows adding multiple skills with tags 
+ * - Submits data to Supabase through contactService
+ * - Provides feedback on submission success/errors
+ */
 export function ContactForm({ onContactAdded }: ContactFormProps) {
+  // Form fields state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [company, setCompany] = useState('');
+  const [role, setRole] = useState('');
+  const [notes, setNotes] = useState('');
   const [skills, setSkills] = useState<string[]>([]);
   const [currentSkill, setCurrentSkill] = useState('');
+  
+  // Dialog state
   const [open, setOpen] = useState(false);
   
+  // Form validation state
   const [errors, setErrors] = useState({
     name: '',
     email: '',
     phone: '',
   });
+  
+  // Loading state for submit button
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /**
+   * Validate the form fields
+   */
   const validateForm = () => {
     const newErrors = {
       name: '',
@@ -45,19 +71,19 @@ export function ContactForm({ onContactAdded }: ContactFormProps) {
     
     let isValid = true;
     
+    // Name is required
     if (!name.trim()) {
       newErrors.name = 'Name is required';
       isValid = false;
     }
     
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
+    // Email validation if provided
+    if (email.trim() && !/\S+@\S+\.\S+/.test(email)) {
       newErrors.email = 'Email is invalid';
       isValid = false;
     }
     
+    // Phone validation if provided
     if (phone.trim() && !/^\d{10}$/.test(phone.replace(/\D/g, ''))) {
       newErrors.phone = 'Phone number must be 10 digits';
       isValid = false;
@@ -67,27 +93,62 @@ export function ContactForm({ onContactAdded }: ContactFormProps) {
     return isValid;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  /**
+   * Handle form submission
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate form
     if (!validateForm()) {
       return;
     }
     
-    // Simulate saving contact
-    setTimeout(() => {
-      toast.success('Contact added successfully');
-      resetForm();
-      setOpen(false);
-      onContactAdded();
-    }, 500);
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare contact data
+      const contactData: ContactInput = {
+        name,
+        email: email || null,
+        phone: phone || null,
+        address: address || null,
+        company: company || null,
+        role: role || null,
+        notes: notes || null,
+        skills: skills,
+      };
+      
+      // Create contact in Supabase
+      const createdContact = await createContact(contactData);
+      
+      if (createdContact) {
+        // Reset form and close dialog
+        resetForm();
+        setOpen(false);
+        
+        // Notify parent component
+        onContactAdded();
+      }
+    } catch (error) {
+      console.error('Error creating contact:', error);
+      toast.error('Failed to create contact');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
+  /**
+   * Reset all form fields
+   */
   const resetForm = () => {
     setName('');
     setEmail('');
     setPhone('');
     setAddress('');
+    setCompany('');
+    setRole('');
+    setNotes('');
     setSkills([]);
     setCurrentSkill('');
     setErrors({
@@ -97,6 +158,9 @@ export function ContactForm({ onContactAdded }: ContactFormProps) {
     });
   };
 
+  /**
+   * Add a skill to the skills array
+   */
   const addSkill = () => {
     if (currentSkill.trim() && !skills.includes(currentSkill.trim())) {
       setSkills([...skills, currentSkill.trim()]);
@@ -104,6 +168,9 @@ export function ContactForm({ onContactAdded }: ContactFormProps) {
     }
   };
 
+  /**
+   * Remove a skill from the skills array
+   */
   const removeSkill = (skill: string) => {
     setSkills(skills.filter(s => s !== skill));
   };
@@ -125,6 +192,7 @@ export function ContactForm({ onContactAdded }: ContactFormProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          {/* Name field */}
           <div className="space-y-2">
             <Label htmlFor="name">
               Full Name <span className="text-red-500">*</span>
@@ -139,9 +207,10 @@ export function ContactForm({ onContactAdded }: ContactFormProps) {
             {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
           </div>
 
+          {/* Email field */}
           <div className="space-y-2">
             <Label htmlFor="email">
-              Email Address <span className="text-red-500">*</span>
+              Email Address <span className="text-muted-foreground text-xs">(optional)</span>
             </Label>
             <Input
               id="email"
@@ -154,6 +223,7 @@ export function ContactForm({ onContactAdded }: ContactFormProps) {
             {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
           </div>
 
+          {/* Phone field */}
           <div className="space-y-2">
             <Label htmlFor="phone">
               Phone Number <span className="text-muted-foreground text-xs">(optional)</span>
@@ -168,6 +238,33 @@ export function ContactForm({ onContactAdded }: ContactFormProps) {
             {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
           </div>
 
+          {/* Company and Role fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="company">
+                Company <span className="text-muted-foreground text-xs">(optional)</span>
+              </Label>
+              <Input
+                id="company"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                placeholder="Acme Inc."
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">
+                Role <span className="text-muted-foreground text-xs">(optional)</span>
+              </Label>
+              <Input
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                placeholder="Software Engineer"
+              />
+            </div>
+          </div>
+
+          {/* Address field */}
           <div className="space-y-2">
             <Label htmlFor="address">
               Address <span className="text-muted-foreground text-xs">(optional)</span>
@@ -181,6 +278,7 @@ export function ContactForm({ onContactAdded }: ContactFormProps) {
             />
           </div>
 
+          {/* Skills field */}
           <div className="space-y-2">
             <Label htmlFor="skills">
               Skills <span className="text-muted-foreground text-xs">(optional)</span>
@@ -223,11 +321,32 @@ export function ContactForm({ onContactAdded }: ContactFormProps) {
             )}
           </div>
 
+          {/* Notes field */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">
+              Notes <span className="text-muted-foreground text-xs">(optional)</span>
+            </Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Additional notes about the contact..."
+              rows={3}
+            />
+          </div>
+
+          {/* Form actions */}
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="hover-scale">Save Contact</Button>
+            <Button 
+              type="submit" 
+              className="hover-scale"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving...' : 'Save Contact'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
