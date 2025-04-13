@@ -7,9 +7,6 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { databaseConnector } from '@/utils/databaseConnector';
-import { ChatGroq } from '@langchain/groq';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import { StringOutputParser } from '@langchain/core/output_parsers';
 
 type Message = {
   id: string;
@@ -27,27 +24,6 @@ const suggestions = [
   "Add meeting with design team tomorrow at 2pm"
 ];
 
-// Initialize Groq model with LangChain
-const initializeGroqModel = () => {
-  try {
-    // This is just a placeholder. In a real app, you would get the API key from a secure source
-    const apiKey = process.env.GROQ_API_KEY || localStorage.getItem('GROQ_API_KEY');
-    
-    if (!apiKey) {
-      console.warn('GROQ API key not found');
-      return null;
-    }
-    
-    return new ChatGroq({
-      apiKey,
-      model: "llama3-70b-8192", // Fixed: using 'model' instead of 'modelName'
-    });
-  } catch (error) {
-    console.error('Failed to initialize Groq model:', error);
-    return null;
-  }
-};
-
 export function ChatAssistant() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
@@ -60,8 +36,6 @@ export function ChatAssistant() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState(localStorage.getItem('GROQ_API_KEY') || '');
-  const [isApiKeySet, setIsApiKeySet] = useState(Boolean(localStorage.getItem('GROQ_API_KEY')));
   const [dbStatus, setDbStatus] = useState<{
     connected: boolean;
     type: string | null;
@@ -73,10 +47,6 @@ export function ChatAssistant() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    // Check database connection on component mount
     checkDatabaseConnection();
   }, []);
 
@@ -108,17 +78,6 @@ export function ChatAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSaveApiKey = () => {
-    if (apiKey) {
-      localStorage.setItem('GROQ_API_KEY', apiKey);
-      setIsApiKeySet(true);
-      toast({
-        title: "API Key Saved",
-        description: "Your Groq API key has been saved to local storage.",
-      });
-    }
-  };
-
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     
@@ -137,42 +96,7 @@ export function ChatAssistant() {
     setIsLoading(true);
     
     try {
-      // Use LangChain + Groq if API key is set
-      if (isApiKeySet) {
-        const groqModel = initializeGroqModel();
-        
-        if (groqModel) {
-          const prompt = ChatPromptTemplate.fromMessages([
-            ["system", `You are a helpful assistant for a task management application. 
-            The user is connected to a ${dbStatus.type || 'no'} database.
-            If they ask about tasks or contacts, pretend to query the database.
-            Be helpful, concise, and professional.`],
-            ["user", "{input}"],
-          ]);
-          
-          const chain = prompt.pipe(groqModel).pipe(new StringOutputParser());
-          
-          const response = await chain.invoke({
-            input,
-          });
-          
-          // Add AI response
-          const aiMessage: Message = {
-            id: generateId(),
-            content: response,
-            sender: 'ai',
-            timestamp: new Date(),
-          };
-          
-          setMessages(prev => [...prev, aiMessage]);
-        } else {
-          // Fallback to mock response if model initialization failed
-          await mockAIResponse(input);
-        }
-      } else {
-        // Use mock response if no API key
-        await mockAIResponse(input);
-      }
+      await mockAIResponse(input);
     } catch (error) {
       console.error('Error generating AI response:', error);
       const errorMessage: Message = {
@@ -185,7 +109,7 @@ export function ChatAssistant() {
       
       toast({
         title: "AI Error",
-        description: "Failed to generate response. Please check your API key and try again.",
+        description: "Failed to generate response.",
         variant: "destructive"
       });
     } finally {
@@ -248,25 +172,6 @@ export function ChatAssistant() {
           Ask me to create tasks, search data, or perform actions using natural language
         </CardDescription>
       </CardHeader>
-      
-      {!isApiKeySet && (
-        <div className="mx-6 my-2 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-md border border-amber-200 dark:border-amber-800">
-          <h3 className="text-sm font-medium mb-2 text-amber-800 dark:text-amber-200">Groq API Key Required</h3>
-          <div className="flex gap-2">
-            <Input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your Groq API key"
-              className="flex-1 text-xs"
-            />
-            <Button size="sm" onClick={handleSaveApiKey} disabled={!apiKey}>Save</Button>
-          </div>
-          <p className="text-xs mt-2 text-amber-700 dark:text-amber-300">
-            Without an API key, the assistant will use simulated responses.
-          </p>
-        </div>
-      )}
       
       <CardContent className="p-4 flex-1 overflow-y-auto">
         <div className="space-y-4">
@@ -357,3 +262,4 @@ export function ChatAssistant() {
     </Card>
   );
 }
+
