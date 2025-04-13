@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, ChevronLeft, ChevronRight, Download, Filter, Plus, Search } from 'lucide-react';
-import { Task } from '@/types/database.types';
+import { Task } from '@/services/taskService';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
@@ -55,9 +54,12 @@ const GanttTaskBar: React.FC<GanttTaskProps> = ({ task, startDate, daysToShow, c
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase();
     switch (statusLower) {
+      case 'todo': 
       case 'not started': return 'border-slate-400';
-      case 'in progress': return 'border-blue-400';
+      case 'in progress': 
+      case 'in-progress': return 'border-blue-400';
       case 'on hold': return 'border-amber-400';
+      case 'done':
       case 'completed': return 'border-green-400';
       case 'reviewed & approved': return 'border-purple-400';
       default: return 'border-slate-400';
@@ -122,15 +124,15 @@ export const GanttChart: React.FC = () => {
           throw error;
         }
         
-        // Transform the data if needed
+        // Transform the data with proper type casting
         const formattedTasks = data.map(task => ({
           ...task,
-          // Ensure task has all required fields
+          // Map status to expected enum values
+          status: mapStatusValue(task.status),
+          priority: mapPriorityValue(task.priority),
           id: task.id,
           title: task.title,
           description: task.description || null,
-          status: task.status || 'Not Started',
-          priority: task.priority || 'Medium',
           deadline: task.deadline,
           estimated_time: task.estimated_time || null,
           assigned_to: task.assigned_to || null,
@@ -138,7 +140,7 @@ export const GanttChart: React.FC = () => {
           created_at: task.created_at,
           updated_at: task.updated_at || task.created_at,
           user_id: task.user_id
-        }));
+        })) as Task[];
         
         setTasks(formattedTasks);
         setLoading(false);
@@ -155,6 +157,24 @@ export const GanttChart: React.FC = () => {
     
     fetchTasks();
   }, [uiToast]);
+  
+  // Helper function to map status values to our expected enum types
+  const mapStatusValue = (status: string): 'todo' | 'in-progress' | 'done' => {
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'not started' || statusLower === 'todo') return 'todo';
+    if (statusLower === 'in progress' || statusLower === 'in-progress') return 'in-progress';
+    if (statusLower === 'completed' || statusLower === 'done' || statusLower === 'reviewed & approved') return 'done';
+    return 'todo'; // Default value
+  };
+  
+  // Helper function to map priority values to our expected enum types
+  const mapPriorityValue = (priority: string): 'low' | 'medium' | 'high' => {
+    const priorityLower = priority.toLowerCase();
+    if (priorityLower === 'low') return 'low';
+    if (priorityLower === 'medium') return 'medium';
+    if (priorityLower === 'high') return 'high';
+    return 'medium'; // Default value
+  };
   
   // Filter tasks based on current filter and search query
   const filteredTasks = tasks.filter(task => {
@@ -273,10 +293,10 @@ export const GanttChart: React.FC = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Tasks</SelectItem>
-              <SelectItem value="not started">Not Started</SelectItem>
-              <SelectItem value="in progress">In Progress</SelectItem>
+              <SelectItem value="todo">Not Started</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
               <SelectItem value="on hold">On Hold</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="done">Completed</SelectItem>
               <SelectItem value="reviewed & approved">Reviewed & Approved</SelectItem>
             </SelectContent>
           </Select>

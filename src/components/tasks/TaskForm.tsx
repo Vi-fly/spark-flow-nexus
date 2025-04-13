@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog,
@@ -35,15 +34,30 @@ type TaskFormProps = {
   editTask?: Task;
 };
 
+// Helper function to map external status values to our internal enum
+const mapStatusToInternalValue = (status: string): 'todo' | 'in-progress' | 'done' => {
+  if (status && typeof status === 'string') {
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'not started' || statusLower === 'todo') return 'todo';
+    if (statusLower === 'in progress' || statusLower === 'in-progress') return 'in-progress';
+    if (statusLower === 'completed' || statusLower === 'done' || statusLower === 'reviewed & approved') return 'done';
+  }
+  return 'todo'; // Default value
+};
+
+// Helper function to map external priority values to our internal enum
+const mapPriorityToInternalValue = (priority: string): 'low' | 'medium' | 'high' => {
+  if (priority && typeof priority === 'string') {
+    const priorityLower = priority.toLowerCase();
+    if (priorityLower === 'low') return 'low';
+    if (priorityLower === 'medium') return 'medium';
+    if (priorityLower === 'high') return 'high';
+  }
+  return 'medium'; // Default value
+};
+
 /**
  * TaskForm component - Form for creating or editing tasks
- * 
- * Features:
- * - Can be used for both new tasks and editing existing tasks
- * - Provides fields for all task properties
- * - Validates input before submission
- * - Shows contacts dropdown for assignment
- * - Handles date selection for deadline
  */
 export function TaskForm({ open, onOpenChange, onTaskAdded, editTask }: TaskFormProps) {
   // Task form state
@@ -84,8 +98,8 @@ export function TaskForm({ open, onOpenChange, onTaskAdded, editTask }: TaskForm
     if (editTask) {
       setTitle(editTask.title);
       setDescription(editTask.description || '');
-      setStatus(editTask.status);
-      setPriority(editTask.priority);
+      setStatus(mapStatusToInternalValue(editTask.status));
+      setPriority(mapPriorityToInternalValue(editTask.priority));
       setDeadline(editTask.deadline ? new Date(editTask.deadline) : undefined);
       setEstimatedTime(editTask.estimated_time || '');
       setAssignedToId(editTask.assigned_to || undefined);

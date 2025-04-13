@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -62,26 +61,21 @@ const Data = () => {
       setIsLoading(true);
       
       try {
-        // List available tables
-        const { data: tablesData, error: tablesError } = await supabase
-          .from('_metadata')
-          .select('*');
-
-        // This is a fallback since we can't directly query for table metadata with the client
-        // We'll manually check for known tables since _metadata may not exist
+        // We can't directly query for table metadata with the client
+        // We'll manually check for known tables
         const knownTables = ['contacts', 'tasks'];
         const tableInfoPromises = knownTables.map(async (tableName) => {
           try {
             // Count records
             const { count, error: countError } = await supabase
-              .from(tableName)
+              .from(tableName as 'contacts' | 'tasks')
               .select('*', { count: 'exact', head: true });
             
             if (countError) throw countError;
             
             // Get a sample row to determine fields
             const { data: sampleData, error: sampleError } = await supabase
-              .from(tableName)
+              .from(tableName as 'contacts' | 'tasks')
               .select('*')
               .limit(1);
             
@@ -134,17 +128,19 @@ const Data = () => {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase
-        .from(tableName)
-        .select('*');
-      
-      if (error) throw error;
-      
-      // Update the tableData state with the fetched data
-      setTableData(prevData => ({
-        ...prevData,
-        [tableName]: data
-      }));
+      if (tableName === 'contacts' || tableName === 'tasks') {
+        const { data, error } = await supabase
+          .from(tableName as 'contacts' | 'tasks')
+          .select('*');
+        
+        if (error) throw error;
+        
+        // Update the tableData state with the fetched data
+        setTableData(prevData => ({
+          ...prevData,
+          [tableName]: data
+        }));
+      }
     } catch (error) {
       console.error(`Error fetching data from ${tableName}:`, error);
       toast.error(`Failed to load data from ${tableName}`);

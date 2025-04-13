@@ -11,8 +11,8 @@ export type Task = {
   user_id: string;
   title: string;
   description?: string | null;
-  status: string;
-  priority: string;
+  status: 'todo' | 'in-progress' | 'done';
+  priority: 'low' | 'medium' | 'high';
   deadline?: string | null;
   estimated_time?: string | null;
   assigned_to?: string | null;
@@ -35,6 +35,24 @@ export type Task = {
 // Define Task input type for creation/updates
 export type TaskInput = Omit<Task, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
 
+// Helper function to map database status values to our internal enum
+const mapStatusValue = (status: string): 'todo' | 'in-progress' | 'done' => {
+  const statusLower = status.toLowerCase();
+  if (statusLower === 'not started' || statusLower === 'todo') return 'todo';
+  if (statusLower === 'in progress' || statusLower === 'in-progress') return 'in-progress';
+  if (statusLower === 'completed' || statusLower === 'done' || statusLower === 'reviewed & approved') return 'done';
+  return 'todo'; // Default value
+};
+
+// Helper function to map database priority values to our internal enum
+const mapPriorityValue = (priority: string): 'low' | 'medium' | 'high' => {
+  const priorityLower = priority.toLowerCase();
+  if (priorityLower === 'low') return 'low';
+  if (priorityLower === 'medium') return 'medium';
+  if (priorityLower === 'high') return 'high';
+  return 'medium'; // Default value
+};
+
 /**
  * Fetch all tasks for the current user
  */
@@ -53,7 +71,14 @@ export const getAllTasks = async (): Promise<Task[]> => {
       return [];
     }
     
-    return data as Task[] || [];
+    // Transform data to match our Task type
+    const transformedData = data.map(task => ({
+      ...task,
+      status: mapStatusValue(task.status),
+      priority: mapPriorityValue(task.priority)
+    })) as Task[];
+    
+    return transformedData || [];
   } catch (error) {
     console.error('Unexpected error fetching tasks:', error);
     toast.error('Failed to load tasks');
@@ -80,7 +105,14 @@ export const getTaskById = async (id: string): Promise<Task | null> => {
       return null;
     }
     
-    return data as Task;
+    // Transform data to match our Task type
+    const transformedData = {
+      ...data,
+      status: mapStatusValue(data.status),
+      priority: mapPriorityValue(data.priority)
+    } as Task;
+    
+    return transformedData;
   } catch (error) {
     console.error('Unexpected error fetching task:', error);
     toast.error('Failed to load task');
@@ -124,8 +156,12 @@ export const createTask = async (taskInput: TaskInput): Promise<Task | null> => 
     // Show success message
     toast.success('Task created successfully');
     
-    // Return the created task
-    return data as Task;
+    // Return the created task with proper type mappings
+    return {
+      ...data,
+      status: mapStatusValue(data.status),
+      priority: mapPriorityValue(data.priority)
+    } as Task;
   } catch (error) {
     console.error('Unexpected error creating task:', error);
     toast.error('Failed to create task');
@@ -156,8 +192,12 @@ export const updateTask = async (id: string, taskInput: Partial<TaskInput>): Pro
     // Show success message
     toast.success('Task updated successfully');
     
-    // Return the updated task
-    return data as Task;
+    // Return the updated task with proper type mappings
+    return {
+      ...data,
+      status: mapStatusValue(data.status),
+      priority: mapPriorityValue(data.priority)
+    } as Task;
   } catch (error) {
     console.error('Unexpected error updating task:', error);
     toast.error('Failed to update task');
