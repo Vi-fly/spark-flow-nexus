@@ -24,14 +24,20 @@ type SidebarProps = {
   className?: string;
 };
 
-// Navigation item type definition
+/**
+ * Navigation item type definition
+ * Represents each item in the sidebar navigation
+ */
 type NavItem = {
-  title: string;
-  icon: React.ElementType;
-  path: string;
+  title: string;         // Display name of the navigation item
+  icon: React.ElementType; // Icon component to display
+  path: string;          // URL path the item links to
 };
 
-// Main navigation items
+/**
+ * Main navigation items configuration
+ * Each item defines a route in the application
+ */
 const navItems: NavItem[] = [
   { title: 'Home', icon: Home, path: '/' },
   { title: 'Contacts', icon: Users, path: '/contacts' },
@@ -45,10 +51,25 @@ const navItems: NavItem[] = [
   { title: 'Settings', icon: SettingsIcon, path: '/settings' },
 ];
 
-// Sidebar component for application navigation
+/**
+ * Sidebar component - Provides application navigation
+ * 
+ * Features:
+ * - Collapsible/expandable sidebar
+ * - Highlighted active route
+ * - User profile display
+ * - Customizable width based on user preferences
+ * 
+ * @param {SidebarProps} props - Component properties
+ */
 export function Sidebar({ className }: SidebarProps) {
+  // Get compact sidebar setting from theme context
   const { compactSidebar = false } = useTheme();
+  
+  // Local state for sidebar collapsed status
   const [collapsed, setCollapsed] = useState(compactSidebar);
+  
+  // Get user information from auth context
   const { user } = useAuth();
 
   // Update collapsed state when compactSidebar setting changes
@@ -67,15 +88,18 @@ export function Sidebar({ className }: SidebarProps) {
         className
       )}
     >
+      {/* Toggle button for sidebar collapse/expand */}
       <Button
         variant="ghost"
         size="icon"
         className="absolute -right-4 top-4 h-8 w-8 rounded-full bg-primary text-primary-foreground shadow-md z-10 hover:scale-110 transition-transform"
         onClick={toggleSidebar}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? <Menu size={14} /> : <X size={14} />}
       </Button>
 
+      {/* Logo or app title */}
       <div className="flex items-center justify-center h-16 border-b border-sidebar-border">
         <h1 className={cn(
           "text-xl font-bold text-indigo-600 transition-all duration-300",
@@ -90,6 +114,7 @@ export function Sidebar({ className }: SidebarProps) {
         )}
       </div>
 
+      {/* Main navigation menu */}
       <nav className="mt-6 px-2">
         <ul className="space-y-2">
           {navItems.map((item) => (
@@ -104,17 +129,23 @@ export function Sidebar({ className }: SidebarProps) {
                       : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
                   )
                 }
+                title={item.title}
               >
+                {/* Navigation item icon */}
                 <item.icon className={cn(
                   "h-5 w-5 transition-all",
                   collapsed ? "mx-auto" : "mr-3"
                 )} />
+                
+                {/* Navigation item text - hidden when collapsed */}
                 <span className={cn(
                   "transition-all duration-300",
                   collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
                 )}>
                   {item.title}
                 </span>
+                
+                {/* Tooltip for collapsed sidebar */}
                 {collapsed && (
                   <span className="absolute left-full ml-2 p-2 bg-sidebar-accent text-sidebar-foreground rounded-md opacity-0 group-hover:opacity-100 transition-opacity z-50 text-sm whitespace-nowrap">
                     {item.title}
@@ -126,14 +157,18 @@ export function Sidebar({ className }: SidebarProps) {
         </ul>
       </nav>
 
+      {/* User profile section */}
       <div className="absolute bottom-0 w-full p-4 border-t border-sidebar-border">
         <div className={cn(
           "flex items-center transition-all duration-300",
           collapsed ? "justify-center" : "space-x-3"
         )}>
+          {/* User avatar - shows first letter of email */}
           <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-medium">
             {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
           </div>
+          
+          {/* User details - hidden when collapsed */}
           <div className={cn(
             "flex flex-col transition-all duration-300",
             collapsed ? "opacity-0 w-0 overflow-hidden" : "opacity-100"

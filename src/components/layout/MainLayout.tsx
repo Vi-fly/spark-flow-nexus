@@ -9,11 +9,19 @@ import { LogOut, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 /**
- * MainLayout component - Provides the main application layout with sidebar
- * and content area
+ * MainLayout component - Provides the main application layout
+ * 
+ * This component:
+ * - Renders the sidebar navigation
+ * - Displays the main content area with page animations
+ * - Provides theme toggle and logout buttons
+ * - Applies global theme settings from ThemeContext
  */
 export function MainLayout() {
+  // Get authentication context for user-related functions
   const { signOut } = useAuth();
+  
+  // Get theme context for appearance and layout settings
   const { 
     theme, 
     toggleTheme,
@@ -24,6 +32,8 @@ export function MainLayout() {
     accentColor,
     fontScale
   } = useTheme();
+  
+  // Get current location for page transition animations
   const location = useLocation();
   const [pageKey, setPageKey] = useState(location.pathname);
   
@@ -32,9 +42,13 @@ export function MainLayout() {
     setPageKey(location.pathname);
   }, [location.pathname]);
 
-  // Get animation properties based on reduceMotion setting
+  /**
+   * Get animation properties based on user's reduced motion preference
+   * This makes the app more accessible for users who prefer reduced motion
+   */
   const getAnimationProps = () => {
     if (reduceMotion) {
+      // Subtle fade animation when reduced motion is preferred
       return {
         initial: { opacity: 0.8 },
         animate: { opacity: 1 },
@@ -43,6 +57,7 @@ export function MainLayout() {
       };
     }
     
+    // Standard animation with both opacity and movement
     return {
       initial: { opacity: 0, y: 10 },
       animate: { opacity: 1, y: 0 },
@@ -51,7 +66,7 @@ export function MainLayout() {
     };
   };
   
-  // Apply classes based on settings
+  // Compose class names based on active theme settings
   const containerClasses = [
     'flex h-screen w-full overflow-hidden bg-background',
     compactMode ? 'compact-mode' : '',
@@ -63,19 +78,24 @@ export function MainLayout() {
   
   return (
     <div className={containerClasses}>
+      {/* Sidebar navigation component */}
       <Sidebar />
+      
+      {/* Main content area */}
       <main className="flex-1 overflow-auto relative">
+        {/* Page transition animations */}
         <AnimatePresence mode="wait">
           <motion.div
             key={pageKey}
             {...getAnimationProps()}
             className="container py-6 h-full"
           >
+            {/* Route content rendered here */}
             <Outlet />
           </motion.div>
         </AnimatePresence>
         
-        {/* Theme toggler */}
+        {/* Theme toggle button */}
         <Button 
           variant="ghost" 
           size="icon" 

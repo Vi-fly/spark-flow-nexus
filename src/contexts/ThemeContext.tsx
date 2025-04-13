@@ -35,7 +35,15 @@ type ThemeContextType = {
 // Create the context with default values
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-// ThemeProvider component to manage theme state and provide it to all children
+/**
+ * ThemeProvider component to manage theme state and provide it to all children
+ * This component handles:
+ * - Theme (light/dark) preference
+ * - Accessibility options (reduce motion, high contrast)
+ * - UI preferences (glass effects, compact mode)
+ * - Color and font customization
+ * - Layout configuration
+ */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Initialize theme state from localStorage or system preference
   const [theme, setTheme] = useState(() => {
@@ -50,7 +58,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return prefersDark ? 'dark' : 'light';
   });
 
-  // Initialize additional settings
+  // Initialize additional settings from localStorage or with defaults
   const [reduceMotion, setReduceMotion] = useState(localStorage.getItem('reduceMotion') === 'true');
   const [highContrast, setHighContrast] = useState(localStorage.getItem('highContrast') === 'true');
   const [glassEffects, setGlassEffects] = useState(localStorage.getItem('glassEffects') !== 'false');
@@ -59,24 +67,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [fontScale, setFontScale] = useState(localStorage.getItem('fontScale') || '1');
   const [colorScheme, setColorScheme] = useState(localStorage.getItem('colorScheme') || 'default');
   
-  // Layout settings
+  // Layout settings with default values
   const [compactSidebar, setCompactSidebar] = useState(localStorage.getItem('compactSidebar') === 'true');
   const [fixedHeader, setFixedHeader] = useState(localStorage.getItem('fixedHeader') !== 'false');
   const [showQuickActions, setShowQuickActions] = useState(localStorage.getItem('showQuickActions') !== 'false');
   const [tabbedInterface, setTabbedInterface] = useState(localStorage.getItem('tabbedInterface') === 'true');
   const [dashboardLayout, setDashboardLayout] = useState(localStorage.getItem('dashboardLayout') || 'grid');
 
-  // Function to toggle between light and dark themes
+  /**
+   * Toggle between light and dark themes
+   * This is a convenience function for UI components
+   */
   const toggleTheme = () => {
     setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
   };
 
-  // Update localStorage and apply theme when it changes
+  // Effect: Update localStorage and apply theme when it changes
   useEffect(() => {
     // Store theme preference in localStorage
     localStorage.setItem('theme', theme);
     
-    // Apply theme to document
+    // Apply theme to document root element
     const root = document.documentElement;
     if (theme === 'dark') {
       root.classList.add('dark');
@@ -85,9 +96,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [theme]);
 
-  // Apply all appearance settings when they change
+  // Effect: Apply all appearance settings when they change
   useEffect(() => {
-    // Store settings in localStorage
+    // Store settings in localStorage for persistence across sessions
     localStorage.setItem('reduceMotion', reduceMotion.toString());
     localStorage.setItem('highContrast', highContrast.toString());
     localStorage.setItem('glassEffects', glassEffects.toString());
@@ -96,40 +107,39 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('fontScale', fontScale);
     localStorage.setItem('colorScheme', colorScheme);
     
-    // Apply settings to document
+    // Apply settings to document root element
     const root = document.documentElement;
     
-    // Apply font scaling
+    // Apply font scaling for better readability
     root.style.fontSize = `${parseFloat(fontScale) * 100}%`;
     
-    // Apply reduce motion
+    // Apply accessibility settings via CSS classes
     if (reduceMotion) {
       root.classList.add('reduce-motion');
     } else {
       root.classList.remove('reduce-motion');
     }
     
-    // Apply high contrast
     if (highContrast) {
       root.classList.add('high-contrast-mode');
     } else {
       root.classList.remove('high-contrast-mode');
     }
     
-    // Apply compact mode
     if (compactMode) {
       root.classList.add('compact-mode');
     } else {
       root.classList.remove('compact-mode');
     }
     
-    // Apply accent color and color scheme
+    // Apply accent color and color scheme as data attributes
+    // These can be used in CSS for theming
     root.setAttribute('data-accent', accentColor);
     root.setAttribute('data-color-scheme', colorScheme);
     
   }, [reduceMotion, highContrast, glassEffects, compactMode, accentColor, fontScale, colorScheme]);
 
-  // Apply layout settings when they change
+  // Effect: Apply layout settings when they change
   useEffect(() => {
     // Store layout settings in localStorage
     localStorage.setItem('compactSidebar', compactSidebar.toString());
@@ -138,36 +148,34 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('tabbedInterface', tabbedInterface.toString());
     localStorage.setItem('dashboardLayout', dashboardLayout);
     
-    // Apply layout settings to document
+    // Apply layout settings to document root element
     const root = document.documentElement;
     
-    // Apply compact sidebar
+    // Apply CSS classes for various layout options
     if (compactSidebar) {
       root.classList.add('compact-sidebar');
     } else {
       root.classList.remove('compact-sidebar');
     }
     
-    // Apply fixed header
     if (fixedHeader) {
       root.classList.add('fixed-header');
     } else {
       root.classList.remove('fixed-header');
     }
     
-    // Apply tabbed interface
     if (tabbedInterface) {
       root.classList.add('tabbed-interface');
     } else {
       root.classList.remove('tabbed-interface');
     }
     
-    // Apply dashboard layout
+    // Apply dashboard layout as a data attribute
     root.setAttribute('data-dashboard-layout', dashboardLayout);
     
   }, [compactSidebar, fixedHeader, showQuickActions, tabbedInterface, dashboardLayout]);
 
-  // Listen for system preference changes
+  // Effect: Listen for system preference changes (dark mode)
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     
@@ -178,14 +186,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    // Add event listener
+    // Add event listener to detect system preference changes
     mediaQuery.addEventListener('change', handleChange);
     
-    // Clean up
+    // Clean up event listener on component unmount
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  // Listen for reduced motion preference
+  // Effect: Listen for reduced motion preference from system
   useEffect(() => {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     
@@ -196,14 +204,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     };
     
-    // Add event listener
+    // Add event listener to detect system preference changes
     motionQuery.addEventListener('change', handleMotionChange);
     
-    // Clean up
+    // Clean up event listener on component unmount
     return () => motionQuery.removeEventListener('change', handleMotionChange);
   }, []);
 
-  // Provide all settings to children
+  // Provide all settings to children components via context
   return (
     <ThemeContext.Provider value={{ 
       theme, 
@@ -239,7 +247,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Custom hook to use the theme context
+/**
+ * Custom hook to use the theme context
+ * This simplifies access to theme settings in components
+ */
 export function useTheme() {
   const context = useContext(ThemeContext);
   

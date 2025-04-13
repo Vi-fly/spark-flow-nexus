@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -44,7 +45,44 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { toast as sonnerToast } from 'sonner';
 
+/**
+ * Available accent colors for theme customization
+ * These colors must match the color classes defined in tailwind.config.ts
+ */
+const ACCENT_COLORS = [
+  { name: 'indigo', hex: '#4F46E5', displayName: 'Indigo' },
+  { name: 'purple', hex: '#9F7AEA', displayName: 'Purple' },
+  { name: 'green', hex: '#22c55e', displayName: 'Green' },
+  { name: 'red', hex: '#ef4444', displayName: 'Red' },
+  { name: 'orange', hex: '#f97316', displayName: 'Orange' },
+  { name: 'blue', hex: '#3b82f6', displayName: 'Blue' },
+];
+
+/**
+ * Font scale options for better readability
+ */
+const FONT_SCALE_OPTIONS = [
+  { value: '0.9', label: 'Small' },
+  { value: '1', label: 'Medium (Default)' },
+  { value: '1.1', label: 'Large' },
+  { value: '1.2', label: 'Extra Large' },
+];
+
+/**
+ * Settings Page Component
+ * 
+ * A comprehensive settings page with multiple tabs for:
+ * - Appearance customization
+ * - Account management
+ * - Database settings
+ * - API key management
+ * - Notification preferences
+ * - Security settings
+ * - User preferences
+ * - Layout customization
+ */
 const Settings = () => {
+  // Get theme customization settings from context
   const { 
     theme, 
     toggleTheme, 
@@ -61,9 +99,20 @@ const Settings = () => {
     fontScale,
     setFontScale,
     colorScheme,
-    setColorScheme
+    setColorScheme,
+    compactSidebar,
+    setCompactSidebar,
+    fixedHeader,
+    setFixedHeader,
+    showQuickActions,
+    setShowQuickActions,
+    tabbedInterface, 
+    setTabbedInterface,
+    dashboardLayout,
+    setDashboardLayout
   } = useTheme();
   
+  // Toast notifications for user feedback
   const { toast } = useToast();
   
   // GROQ API Key settings
@@ -100,13 +149,30 @@ const Settings = () => {
   const [commentNotifications, setCommentNotifications] = useState(localStorage.getItem('commentNotifications') !== 'false');
   const [systemUpdates, setSystemUpdates] = useState(localStorage.getItem('systemUpdates') !== 'false');
   
-  // Layout settings
-  const [compactSidebar, setCompactSidebar] = useState(localStorage.getItem('compactSidebar') === 'true');
-  const [fixedHeader, setFixedHeader] = useState(localStorage.getItem('fixedHeader') !== 'false');
-  const [showQuickActions, setShowQuickActions] = useState(localStorage.getItem('showQuickActions') !== 'false');
-  const [tabbedInterface, setTabbedInterface] = useState(localStorage.getItem('tabbedInterface') === 'true');
-  const [dashboardLayout, setDashboardLayout] = useState(localStorage.getItem('dashboardLayout') || 'grid');
+  // Layout settings initialization from localStorage or ThemeContext
+  useEffect(() => {
+    setCompactSidebar(compactSidebar);
+    setFixedHeader(fixedHeader);
+    setShowQuickActions(showQuickActions);
+    setTabbedInterface(tabbedInterface);
+    setDashboardLayout(dashboardLayout);
+  }, [
+    compactSidebar, 
+    fixedHeader, 
+    showQuickActions, 
+    tabbedInterface, 
+    dashboardLayout,
+    setCompactSidebar,
+    setFixedHeader,
+    setShowQuickActions,
+    setTabbedInterface,
+    setDashboardLayout
+  ]);
 
+  /**
+   * Save GROQ API key to localStorage
+   * Shows loading state and toast notification on completion
+   */
   const handleSaveGroqKey = () => {
     setIsSavingGroqKey(true);
     
@@ -122,6 +188,10 @@ const Settings = () => {
     }, 800);
   };
   
+  /**
+   * Test GROQ API key connection
+   * Shows loading state and toast notification with result
+   */
   const handleTestGroqKey = () => {
     if (!groqKey) {
       toast({
@@ -156,6 +226,9 @@ const Settings = () => {
     }, 1500);
   };
 
+  /**
+   * Save OpenAI API key to localStorage
+   */
   const handleSaveOpenAiKey = () => {
     localStorage.setItem('openAiApiKey', openAiKey);
     
@@ -165,6 +238,9 @@ const Settings = () => {
     });
   };
 
+  /**
+   * Save Google Maps API key to localStorage
+   */
   const handleSaveGoogleMapsKey = () => {
     localStorage.setItem('googleMapsApiKey', googleMapsKey);
     
@@ -174,6 +250,10 @@ const Settings = () => {
     });
   };
 
+  /**
+   * Save user preferences to localStorage
+   * Updates theme context and shows confirmation
+   */
   const handleSavePreferences = () => {
     localStorage.setItem('preferences', JSON.stringify({
       language,
@@ -201,6 +281,10 @@ const Settings = () => {
     sonnerToast.success("Preferences saved successfully");
   };
 
+  /**
+   * Save appearance settings
+   * ThemeContext handles the localStorage updates
+   */
   const handleSaveAppearance = () => {
     // The ThemeContext handles saving to localStorage, so we just update the state
     // We don't need to manually set localStorage values here
@@ -214,6 +298,9 @@ const Settings = () => {
     sonnerToast.success("Appearance settings saved successfully");
   };
 
+  /**
+   * Reset appearance settings to defaults
+   */
   const handleResetAppearance = () => {
     // Reset to defaults using our ThemeContext
     setReduceMotion(false);
@@ -228,6 +315,10 @@ const Settings = () => {
     });
   };
 
+  /**
+   * Save account settings to localStorage
+   * Shows loading state and confirmation
+   */
   const handleSaveAccount = () => {
     setIsSavingAccount(true);
     
@@ -247,6 +338,9 @@ const Settings = () => {
     }, 800);
   };
 
+  /**
+   * Save notification preferences to localStorage
+   */
   const handleSaveNotifications = () => {
     // Save notification settings
     localStorage.setItem('emailNotifications', emailNotifications.toString());
@@ -261,6 +355,9 @@ const Settings = () => {
     });
   };
 
+  /**
+   * Reset notification settings to defaults
+   */
   const handleResetNotifications = () => {
     // Reset to defaults
     setEmailNotifications(true);
@@ -282,6 +379,9 @@ const Settings = () => {
     });
   };
 
+  /**
+   * Save security settings to localStorage
+   */
   const handleSaveSecurity = () => {
     // Save security settings
     localStorage.setItem('twoFactorAuth', twoFactorAuth.toString());
@@ -293,13 +393,17 @@ const Settings = () => {
     });
   };
 
+  /**
+   * Save layout settings to localStorage and ThemeContext
+   * Offers page reload option for full effect
+   */
   const handleSaveLayout = () => {
-    // Save layout settings
-    localStorage.setItem('compactSidebar', compactSidebar.toString());
-    localStorage.setItem('fixedHeader', fixedHeader.toString());
-    localStorage.setItem('showQuickActions', showQuickActions.toString());
-    localStorage.setItem('tabbedInterface', tabbedInterface.toString());
-    localStorage.setItem('dashboardLayout', dashboardLayout);
+    // Update ThemeContext (which will save to localStorage)
+    setCompactSidebar(compactSidebar);
+    setFixedHeader(fixedHeader);
+    setShowQuickActions(showQuickActions);
+    setTabbedInterface(tabbedInterface);
+    setDashboardLayout(dashboardLayout);
     
     toast({
       title: "Layout Settings Saved",
@@ -316,6 +420,9 @@ const Settings = () => {
     });
   };
 
+  /**
+   * Reset layout settings to defaults
+   */
   const handleResetLayout = () => {
     // Reset to defaults
     setCompactSidebar(false);
@@ -324,19 +431,15 @@ const Settings = () => {
     setTabbedInterface(false);
     setDashboardLayout('grid');
     
-    // Apply defaults
-    localStorage.setItem('compactSidebar', 'false');
-    localStorage.setItem('fixedHeader', 'true');
-    localStorage.setItem('showQuickActions', 'true');
-    localStorage.setItem('tabbedInterface', 'false');
-    localStorage.setItem('dashboardLayout', 'grid');
-    
     toast({
       title: "Layout Reset",
       description: "Layout settings have been reset to defaults.",
     });
   };
 
+  /**
+   * Export all settings to a JSON file
+   */
   const handleExportSettings = () => {
     // Get all settings from localStorage and ThemeContext
     const settings = {
@@ -390,6 +493,9 @@ const Settings = () => {
     });
   };
 
+  /**
+   * Import settings from a JSON file
+   */
   const handleImportSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -465,11 +571,13 @@ const Settings = () => {
 
   return (
     <div className="container mx-auto p-6 animate-fade-in">
+      {/* Page header */}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Settings</h1>
         <SettingsIcon className="h-8 w-8 text-primary animate-pulse" />
       </div>
 
+      {/* Settings tabs */}
       <Tabs defaultValue="appearance" className="w-full">
         <TabsList className="mb-8 w-full flex justify-start overflow-x-auto pb-2">
           <TabsTrigger value="appearance" className="flex items-center gap-2 hover-scale">
@@ -506,11 +614,13 @@ const Settings = () => {
           </TabsTrigger>
         </TabsList>
 
+        {/* Appearance settings tab */}
         <TabsContent value="appearance" className="animate-fade-in">
           <Card className={`p-6 ${glassEffects ? 'glass' : ''}`}>
             <h2 className="text-2xl font-bold mb-6 gradient-text">Appearance Settings</h2>
             
             <div className="space-y-6">
+              {/* Dark mode toggle */}
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium">Dark Mode</h3>
@@ -523,6 +633,7 @@ const Settings = () => {
                 />
               </div>
               
+              {/* Reduce motion toggle - accessibility feature */}
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium">Reduce Motion</h3>
@@ -535,6 +646,7 @@ const Settings = () => {
                 />
               </div>
               
+              {/* High contrast toggle - accessibility feature */}
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium">High Contrast</h3>
@@ -547,6 +659,7 @@ const Settings = () => {
                 />
               </div>
               
+              {/* Glass effects toggle - visual feature */}
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium">Glass Effects</h3>
@@ -559,6 +672,7 @@ const Settings = () => {
                 />
               </div>
 
+              {/* Compact mode toggle - layout density */}
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium">Compact Mode</h3>
@@ -571,33 +685,53 @@ const Settings = () => {
                 />
               </div>
               
+              {/* Color picker for accent color */}
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium">Custom Accent Color</h3>
                   <p className="text-sm text-muted-foreground">Choose a custom accent color for the UI</p>
                 </div>
                 <div className="flex space-x-2">
-                  {['indigo', 'purple', 'green', 'red', 'orange', 'blue'].map(color => (
+                  {ACCENT_COLORS.map(color => (
                     <button 
-                      key={color}
-                      className={`w-6 h-6 rounded-full ${
-                        color === 'blue' ? 'bg-blue-500' :
-                        color === 'purple' ? 'bg-purple-500' :
-                        color === 'green' ? 'bg-green-500' :
-                        color === 'red' ? 'bg-red-500' :
-                        color === 'orange' ? 'bg-orange-500' :
-                        'bg-indigo-500'
-                      } hover:scale-110 transition-transform ${
-                        accentColor === color ? 'ring-2 ring-offset-2 ring-primary' : ''
+                      key={color.name}
+                      className={`w-6 h-6 rounded-full bg-${color.name}-500 hover:scale-110 transition-transform ${
+                        accentColor === color.name ? 'ring-2 ring-offset-2 ring-primary' : ''
                       }`}
-                      title={`Set ${color} as accent color`}
-                      onClick={() => setAccentColor(color)}
+                      title={`Set ${color.displayName} as accent color`}
+                      onClick={() => setAccentColor(color.name)}
+                      aria-label={`Set ${color.displayName} as accent color`}
+                      style={{ backgroundColor: color.hex }}
                     />
                   ))}
                 </div>
               </div>
+              
+              {/* Font size selector */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium">Font Size</h3>
+                  <p className="text-sm text-muted-foreground">Adjust text size for better readability</p>
+                </div>
+                <Select 
+                  value={fontScale} 
+                  onValueChange={setFontScale}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select font size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FONT_SCALE_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
+            {/* Action buttons */}
             <div className="mt-8 grid grid-cols-2 gap-4">
               <Button 
                 variant="outline" 
@@ -616,6 +750,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
         
+        {/* Account settings tab */}
         <TabsContent value="account" className="animate-fade-in">
           <Card className="p-6 glass">
             <h2 className="text-2xl font-bold mb-6 gradient-text">Account Settings</h2>
@@ -691,10 +826,12 @@ const Settings = () => {
           </Card>
         </TabsContent>
         
+        {/* Database settings tab */}
         <TabsContent value="database" className="animate-fade-in">
           <DatabaseSettings />
         </TabsContent>
         
+        {/* API Keys settings tab */}
         <TabsContent value="api" className="animate-fade-in">
           <Card className="p-6 glass">
             <h2 className="text-2xl font-bold mb-6 gradient-text">API Key Settings</h2>
@@ -838,6 +975,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
         
+        {/* Notification settings tab */}
         <TabsContent value="notifications" className="animate-fade-in">
           <Card className="p-6 glass">
             <h2 className="text-2xl font-bold mb-6 gradient-text">Notification Settings</h2>
@@ -923,6 +1061,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
         
+        {/* Security settings tab */}
         <TabsContent value="security" className="animate-fade-in">
           <Card className="p-6 glass">
             <h2 className="text-2xl font-bold mb-6 gradient-text">Security Settings</h2>
@@ -944,13 +1083,15 @@ const Settings = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-medium">Session Timeout</h3>
-                  <p className="text-sm text-muted-foreground">Set a timeout for inactive sessions</p>
+                  <p className="text-sm text-muted-foreground">Set a timeout for inactive sessions (minutes)</p>
                 </div>
                 <Input 
                   type="number"
                   value={sessionTimeout}
                   onChange={(e) => setSessionTimeout(e.target.value)}
                   className="w-20"
+                  min="1"
+                  max="240"
                 />
               </div>
             </div>
@@ -966,6 +1107,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
         
+        {/* Preferences tab */}
         <TabsContent value="preferences" className="animate-fade-in">
           <Card className="p-6 glass">
             <h2 className="text-2xl font-bold mb-6 gradient-text">Preferences</h2>
@@ -977,8 +1119,8 @@ const Settings = () => {
                   <h3 className="text-lg font-medium">Language</h3>
                   <p className="text-sm text-muted-foreground">Choose your preferred language</p>
                 </div>
-                <Select>
-                  <SelectTrigger>
+                <Select value={language} onValueChange={setLanguage}>
+                  <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Select language" />
                   </SelectTrigger>
                   <SelectContent>
@@ -994,8 +1136,8 @@ const Settings = () => {
                   <h3 className="text-lg font-medium">Timezone</h3>
                   <p className="text-sm text-muted-foreground">Set your preferred timezone</p>
                 </div>
-                <Select>
-                  <SelectTrigger>
+                <Select value={timezone} onValueChange={setTimezone}>
+                  <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1011,14 +1153,15 @@ const Settings = () => {
                   <h3 className="text-lg font-medium">Font Scale</h3>
                   <p className="text-sm text-muted-foreground">Adjust the font size for better readability</p>
                 </div>
-                <Select>
-                  <SelectTrigger>
+                <Select value={fontScale} onValueChange={setFontScale}>
+                  <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Select font scale" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="small">Small</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="large">Large</SelectItem>
+                    <SelectItem value="0.9">Small</SelectItem>
+                    <SelectItem value="1">Medium</SelectItem>
+                    <SelectItem value="1.1">Large</SelectItem>
+                    <SelectItem value="1.2">Extra Large</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1028,13 +1171,15 @@ const Settings = () => {
                   <h3 className="text-lg font-medium">Color Scheme</h3>
                   <p className="text-sm text-muted-foreground">Choose your preferred color scheme</p>
                 </div>
-                <Select>
-                  <SelectTrigger>
+                <Select value={colorScheme} onValueChange={setColorScheme}>
+                  <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Select color scheme" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
+                    <SelectItem value="default">Default</SelectItem>
+                    <SelectItem value="cool">Cool</SelectItem>
+                    <SelectItem value="warm">Warm</SelectItem>
+                    <SelectItem value="monochrome">Monochrome</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1044,8 +1189,8 @@ const Settings = () => {
                   <h3 className="text-lg font-medium">Date Format</h3>
                   <p className="text-sm text-muted-foreground">Set your preferred date format</p>
                 </div>
-                <Select>
-                  <SelectTrigger>
+                <Select value={dateFormat} onValueChange={setDateFormat}>
+                  <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Select date format" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1068,6 +1213,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
         
+        {/* Layout settings tab */}
         <TabsContent value="layout" className="animate-fade-in">
           <Card className="p-6 glass">
             <h2 className="text-2xl font-bold mb-6 gradient-text">Layout Settings</h2>
@@ -1171,40 +1317,41 @@ const Settings = () => {
             </div>
           </Card>
         </TabsContent>
+      </Tabs>
         
-        <div className="mt-12 p-6 border rounded-lg bg-card">
-          <h2 className="text-xl font-bold mb-4">Import/Export Settings</h2>
-          <p className="text-muted-foreground mb-6">Backup or restore your settings</p>
+      {/* Import/Export settings section */}
+      <div className="mt-12 p-6 border rounded-lg bg-card">
+        <h2 className="text-xl font-bold mb-4">Import/Export Settings</h2>
+        <p className="text-muted-foreground mb-6">Backup or restore your settings</p>
+        
+        <div className="flex space-x-4">
+          <Button 
+            variant="outline" 
+            className="flex items-center gap-2"
+            onClick={handleExportSettings}
+          >
+            <Download className="h-4 w-4" />
+            Export Settings
+          </Button>
           
-          <div className="flex space-x-4">
+          <div className="relative">
+            <input
+              type="file"
+              id="import-settings"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              accept=".json"
+              onChange={handleImportSettings}
+            />
             <Button 
               variant="outline" 
               className="flex items-center gap-2"
-              onClick={handleExportSettings}
             >
-              <Download className="h-4 w-4" />
-              Export Settings
+              <Upload className="h-4 w-4" />
+              Import Settings
             </Button>
-            
-            <div className="relative">
-              <input
-                type="file"
-                id="import-settings"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                accept=".json"
-                onChange={handleImportSettings}
-              />
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                Import Settings
-              </Button>
-            </div>
           </div>
         </div>
-      </Tabs>
+      </div>
     </div>
   );
 };
