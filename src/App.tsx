@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,41 +23,44 @@ import Data from "./pages/Data";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 
+// Create a client
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ThemeProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route element={<ProtectedRoute />}>
-                <Route element={<MainLayout />}>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/contacts" element={<Contacts />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/discussions" element={<Discussions />} />
-                  <Route path="/gantt" element={<Gantt />} />
-                  <Route path="/project/:projectId" element={<ProjectDetails />} />
-                  <Route path="/email" element={<Email />} />
-                  <Route path="/resources" element={<Resources />} />
-                  <Route path="/data" element={<Data />} />
-                  <Route path="/attendance" element={<Attendance />} />
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <ThemeProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<MainLayout />}>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/tasks" element={<Tasks />} />
+                    <Route path="/contacts" element={<Contacts />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/discussions" element={<Discussions />} />
+                    <Route path="/gantt" element={<Gantt />} />
+                    <Route path="/project/:projectId" element={<ProjectDetails />} />
+                    <Route path="/email" element={<Email />} />
+                    <Route path="/resources" element={<Resources />} />
+                    <Route path="/data" element={<Data />} />
+                    <Route path="/attendance" element={<Attendance />} />
+                  </Route>
                 </Route>
-              </Route>
-              <Route path="/index" element={<Navigate to="/" replace />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </ThemeProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+                <Route path="/index" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </ThemeProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </React.StrictMode>
 );
 
 export default App;
