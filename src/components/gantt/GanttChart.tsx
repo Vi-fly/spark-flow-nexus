@@ -303,13 +303,15 @@ export const GanttChart = () => {
         <div className="p-4 border-b">
           <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
             <div className="flex items-center gap-2">
-              <Input
-                placeholder="Search tasks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64"
-                startIcon={<Search className="h-4 w-4" />}
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search tasks..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-64 pl-10"
+                />
+              </div>
               <Button variant="outline" size="sm" onClick={() => setSearchQuery('')}>
                 Clear
               </Button>

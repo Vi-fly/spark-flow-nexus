@@ -254,10 +254,10 @@ export class DiscussionService {
         .map(([tag]) => tag);
       
       return {
-        totalPosts: postsCount || 0,
-        totalComments: commentsCount || 0,
-        activeUsers: uniqueUserIds.size,
-        popularTags: sortedTags
+        totalPosts: 0,
+        totalComments: 0,
+        activeUsers: 0,
+        popularTags: []
       };
     } catch (error) {
       console.error(`Error getting post statistics:`, error);

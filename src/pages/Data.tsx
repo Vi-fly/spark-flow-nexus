@@ -28,8 +28,10 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 
+type TableName = 'contacts' | 'tasks' | 'discussion_posts' | 'discussion_comments';
+
 interface TableInfo {
-  name: string;
+  name: TableName;
   count: number;
   lastUpdated: string;
   fields: string[];
@@ -43,7 +45,7 @@ const Data = () => {
   const { toast: uiToast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [tables, setTables] = useState<TableInfo[]>([]);
-  const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [selectedTable, setSelectedTable] = useState<TableName | null>(null);
   const [tableData, setTableData] = useState<TableData>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [filterField, setFilterField] = useState<string>('');
@@ -59,7 +61,7 @@ const Data = () => {
       setIsLoading(true);
       
       try {
-        const knownTables = ['contacts', 'tasks', 'discussion_posts', 'discussion_comments'];
+        const knownTables: TableName[] = ['contacts', 'tasks', 'discussion_posts', 'discussion_comments'];
         const tableInfoPromises = knownTables.map(async (tableName) => {
           try {
             const { count, error: countError } = await supabase
@@ -116,22 +118,20 @@ const Data = () => {
     loadData();
   }, [uiToast]);
   
-  const fetchTableData = async (tableName: string) => {
+  const fetchTableData = async (tableName: TableName) => {
     setIsLoading(true);
     
     try {
-      if (['contacts', 'tasks', 'discussion_posts', 'discussion_comments'].includes(tableName)) {
-        const { data, error } = await supabase
-          .from(tableName)
-          .select('*');
-        
-        if (error) throw error;
-        
-        setTableData(prevData => ({
-          ...prevData,
-          [tableName]: data
-        }));
-      }
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*');
+      
+      if (error) throw error;
+      
+      setTableData(prevData => ({
+        ...prevData,
+        [tableName]: data
+      }));
     } catch (error) {
       console.error(`Error fetching data from ${tableName}:`, error);
       toast.error(`Failed to load data from ${tableName}`);
@@ -140,7 +140,7 @@ const Data = () => {
     }
   };
   
-  const handleTableSelect = async (tableName: string) => {
+  const handleTableSelect = async (tableName: TableName) => {
     setSelectedTable(tableName);
     setFilterField('');
     setFilterValue('');
