@@ -1,13 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiscussionPost, DiscussionComment } from '@/types/discussion.types';
+import { DiscussionService } from '@/utils/discussionService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import {
   MessageSquare,
   ArrowUp,
@@ -49,116 +50,28 @@ const Discussions = () => {
   const availableTags = ['Question', 'Discussion', 'Announcement', 'Help', 'Project', 'Bug', 'Feature'];
 
   useEffect(() => {
-    loadDemoData();
+    loadPosts();
   }, []);
 
-  const loadDemoData = () => {
-    const demoUser = user?.email?.split('@')[0] || 'anonymous';
-    const currentDate = new Date().toISOString();
+  const loadPosts = async () => {
+    const fetchedPosts = await DiscussionService.getPosts();
+    setPosts(fetchedPosts);
     
-    const demoPosts: DiscussionPost[] = [
-      {
-        id: '1',
-        user_id: 'user1',
-        title: 'Welcome to the Discussion Board',
-        content: 'This is the first post in our discussion board. Feel free to interact!',
-        upvotes: 42,
-        downvotes: 2,
-        tags: ['Announcement', 'Welcome'],
-        created_at: currentDate,
-        updated_at: currentDate
-      },
-      {
-        id: '2',
-        user_id: 'user2',
-        title: 'How do I connect to MongoDB?',
-        content: 'I am trying to configure my MongoDB connection and having some trouble.',
-        upvotes: 15,
-        downvotes: 0,
-        tags: ['Question', 'Help', 'MongoDB'],
-        created_at: currentDate,
-        updated_at: currentDate
-      },
-      {
-        id: '3',
-        user_id: demoUser,
-        title: 'My Task Manager Project',
-        content: 'I just completed my task manager project. Here are some screenshots and lessons learned...',
-        upvotes: 28,
-        downvotes: 1,
-        tags: ['Project', 'Showcase'],
-        created_at: currentDate,
-        updated_at: currentDate
-      },
-      {
-        id: '4',
-        user_id: 'user3',
-        title: 'Best Practices for React Components',
-        content: 'I wanted to share some best practices I\'ve learned for creating reusable React components...',
-        upvotes: 35,
-        downvotes: 3,
-        tags: ['React', 'Frontend', 'Tips'],
-        created_at: currentDate,
-        updated_at: currentDate
-      },
-      {
-        id: '5',
-        user_id: 'user4',
-        title: 'Introducing New Project Management Features',
-        content: 'Our team has just released new project management features including Gantt charts and resource allocation tools!',
-        upvotes: 22,
-        downvotes: 0,
-        tags: ['Announcement', 'Feature'],
-        created_at: currentDate,
-        updated_at: currentDate
-      }
-    ];
+    const commentsMap: Record<string, DiscussionComment[]> = {};
     
-    const demoComments: Record<string, DiscussionComment[]> = {
-      '1': [
-        {
-          id: 'c1',
-          post_id: '1',
-          user_id: 'user3',
-          content: 'Great to be here! Looking forward to the discussions.',
-          upvotes: 5,
-          downvotes: 0,
-          parent_id: null,
-          created_at: currentDate,
-          updated_at: currentDate
+    await Promise.all(
+      fetchedPosts.map(async (post) => {
+        const postComments = await DiscussionService.getComments(post.id);
+        if (postComments.length > 0) {
+          commentsMap[post.id] = postComments;
         }
-      ],
-      '2': [
-        {
-          id: 'c2',
-          post_id: '2',
-          user_id: 'user4',
-          content: 'Have you tried the connection string format mongodb://username:password@host:port/database?',
-          upvotes: 8,
-          downvotes: 0,
-          parent_id: null,
-          created_at: currentDate,
-          updated_at: currentDate
-        },
-        {
-          id: 'c3',
-          post_id: '2',
-          user_id: 'user2',
-          content: 'Thanks, that worked! I was missing the database name.',
-          upvotes: 3,
-          downvotes: 0,
-          parent_id: 'c2',
-          created_at: currentDate,
-          updated_at: currentDate
-        }
-      ]
-    };
+      })
+    );
     
-    setPosts(demoPosts);
-    setComments(demoComments);
+    setComments(commentsMap);
   };
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!newPostTitle.trim() || !newPostContent.trim()) {
       toast({
         title: "Validation Error",
@@ -168,31 +81,36 @@ const Discussions = () => {
       return;
     }
     
-    const newPost: DiscussionPost = {
-      id: `post_${Date.now()}`,
-      user_id: user?.email?.split('@')[0] || 'anonymous',
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "You must be logged in to create a post",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const newPost = {
+      user_id: user.id,
       title: newPostTitle,
       content: newPostContent,
       upvotes: 0,
       downvotes: 0,
-      tags: selectedTags,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      tags: selectedTags
     };
     
-    setPosts([newPost, ...posts]);
-    setSelectedTags([]);
-    setNewPostTitle('');
-    setNewPostContent('');
-    setShowCreatePostForm(false);
+    const createdPost = await DiscussionService.createPost(newPost);
     
-    toast({
-      title: "Post Created",
-      description: "Your post has been published successfully."
-    });
+    if (createdPost) {
+      setPosts([createdPost, ...posts]);
+      setSelectedTags([]);
+      setNewPostTitle('');
+      setNewPostContent('');
+      setShowCreatePostForm(false);
+    }
   };
 
-  const handleCreateComment = (postId: string) => {
+  const handleCreateComment = async (postId: string) => {
     const content = newCommentContent[postId];
     
     if (!content || !content.trim()) {
@@ -204,60 +122,81 @@ const Discussions = () => {
       return;
     }
     
-    const newComment: DiscussionComment = {
-      id: `comment_${Date.now()}`,
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "You must be logged in to comment",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const newComment = {
       post_id: postId,
-      user_id: user?.email?.split('@')[0] || 'anonymous',
+      user_id: user.id,
       content: content,
       upvotes: 0,
       downvotes: 0,
-      parent_id: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      parent_id: null
     };
     
-    const updatedComments = {
-      ...comments,
-      [postId]: [...(comments[postId] || []), newComment]
-    };
+    const createdComment = await DiscussionService.createComment(newComment);
     
-    setComments(updatedComments);
-    
-    setNewCommentContent({
-      ...newCommentContent,
-      [postId]: ''
-    });
-    
-    toast({
-      title: "Comment Added",
-      description: "Your comment has been posted successfully."
-    });
+    if (createdComment) {
+      setComments({
+        ...comments,
+        [postId]: [...(comments[postId] || []), createdComment]
+      });
+      
+      setNewCommentContent({
+        ...newCommentContent,
+        [postId]: ''
+      });
+    }
   };
 
-  const handleVote = (
+  const handleVote = async (
     type: 'post' | 'comment',
     id: string,
     voteType: 'upvote' | 'downvote'
   ) => {
-    if (type === 'post') {
-      const updatedPosts = posts.map(post => {
-        if (post.id === id) {
-          return {
-            ...post,
-            upvotes: voteType === 'upvote' ? post.upvotes + 1 : post.upvotes,
-            downvotes: voteType === 'downvote' ? post.downvotes + 1 : post.downvotes
-          };
-        }
-        return post;
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "You must be logged in to vote",
+        variant: "destructive"
       });
+      return;
+    }
+    
+    if (type === 'post') {
+      const post = posts.find(p => p.id === id);
+      if (!post) return;
       
-      setPosts(updatedPosts);
+      const updatedPost = {
+        ...post,
+        upvotes: voteType === 'upvote' ? post.upvotes + 1 : post.upvotes,
+        downvotes: voteType === 'downvote' ? post.downvotes + 1 : post.downvotes
+      };
+      
+      const success = await DiscussionService.updatePostVotes(
+        id,
+        updatedPost.upvotes,
+        updatedPost.downvotes
+      );
+      
+      if (success) {
+        const updatedPosts = posts.map(p => p.id === id ? updatedPost : p);
+        setPosts(updatedPosts);
+      }
     } else {
+      let commentFound = false;
       const updatedComments = { ...comments };
       
       for (const postId in updatedComments) {
         updatedComments[postId] = updatedComments[postId].map(comment => {
           if (comment.id === id) {
+            commentFound = true;
             return {
               ...comment,
               upvotes: voteType === 'upvote' ? comment.upvotes + 1 : comment.upvotes,
@@ -268,13 +207,24 @@ const Discussions = () => {
         });
       }
       
-      setComments(updatedComments);
+      if (commentFound) {
+        for (const postId in updatedComments) {
+          const updatedComment = updatedComments[postId].find(c => c.id === id);
+          if (updatedComment) {
+            const success = await DiscussionService.updateCommentVotes(
+              id,
+              updatedComment.upvotes,
+              updatedComment.downvotes
+            );
+            
+            if (success) {
+              setComments(updatedComments);
+            }
+            break;
+          }
+        }
+      }
     }
-    
-    toast({
-      title: "Vote Recorded",
-      description: `Your ${voteType} has been counted.`
-    });
   };
 
   const handleAddTag = () => {
@@ -296,8 +246,27 @@ const Discussions = () => {
     setSelectedTags(selectedTags.filter(t => t !== tag));
   };
 
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value);
+  const handleSearch = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const query = event.target.value;
+    setSearchQuery(query);
+    
+    if (query.trim()) {
+      const results = await DiscussionService.searchPosts(query);
+      setPosts(results);
+    } else {
+      loadPosts();
+    }
+  };
+
+  const handleFilterByTags = async (tags: string[]) => {
+    setSelectedTags(tags);
+    
+    if (tags.length > 0) {
+      const results = await DiscussionService.filterPostsByTags(tags);
+      setPosts(results);
+    } else {
+      loadPosts();
+    }
   };
 
   const filteredPosts = posts.filter(post => {

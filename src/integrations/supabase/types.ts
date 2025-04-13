@@ -54,6 +54,93 @@ export type Database = {
         }
         Relationships: []
       }
+      discussion_comments: {
+        Row: {
+          content: string
+          created_at: string
+          downvotes: number
+          id: string
+          parent_id: string | null
+          post_id: string
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          downvotes?: number
+          id?: string
+          parent_id?: string | null
+          post_id: string
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          downvotes?: number
+          id?: string
+          parent_id?: string | null
+          post_id?: string
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussion_posts: {
+        Row: {
+          content: string
+          created_at: string
+          downvotes: number
+          id: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          upvotes: number
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          downvotes?: number
+          id?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          upvotes?: number
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          downvotes?: number
+          id?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          upvotes?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           assigned_to: string | null

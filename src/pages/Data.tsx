@@ -28,7 +28,6 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 
-// Table info data structure
 interface TableInfo {
   name: string;
   count: number;
@@ -55,27 +54,22 @@ const Data = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [viewMode, setViewMode] = useState<'table' | 'grid' | 'chart'>('table');
   
-  // Fetch data from Supabase
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       
       try {
-        // We can't directly query for table metadata with the client
-        // We'll manually check for known tables
-        const knownTables = ['contacts', 'tasks'];
+        const knownTables = ['contacts', 'tasks', 'discussion_posts', 'discussion_comments'];
         const tableInfoPromises = knownTables.map(async (tableName) => {
           try {
-            // Count records
             const { count, error: countError } = await supabase
-              .from(tableName as 'contacts' | 'tasks')
+              .from(tableName)
               .select('*', { count: 'exact', head: true });
             
             if (countError) throw countError;
             
-            // Get a sample row to determine fields
             const { data: sampleData, error: sampleError } = await supabase
-              .from(tableName as 'contacts' | 'tasks')
+              .from(tableName)
               .select('*')
               .limit(1);
             
@@ -105,7 +99,6 @@ const Data = () => {
         if (validTableInfo.length > 0) {
           setSelectedTable(validTableInfo[0].name);
           
-          // Fetch data for the first table
           await fetchTableData(validTableInfo[0].name);
         }
       } catch (error) {
@@ -123,19 +116,17 @@ const Data = () => {
     loadData();
   }, [uiToast]);
   
-  // Fetch data for a specific table
   const fetchTableData = async (tableName: string) => {
     setIsLoading(true);
     
     try {
-      if (tableName === 'contacts' || tableName === 'tasks') {
+      if (['contacts', 'tasks', 'discussion_posts', 'discussion_comments'].includes(tableName)) {
         const { data, error } = await supabase
-          .from(tableName as 'contacts' | 'tasks')
+          .from(tableName)
           .select('*');
         
         if (error) throw error;
         
-        // Update the tableData state with the fetched data
         setTableData(prevData => ({
           ...prevData,
           [tableName]: data
@@ -149,7 +140,6 @@ const Data = () => {
     }
   };
   
-  // Handle table selection
   const handleTableSelect = async (tableName: string) => {
     setSelectedTable(tableName);
     setFilterField('');
@@ -158,7 +148,6 @@ const Data = () => {
     setSortDirection('asc');
     setCurrentPage(1);
     
-    // Check if we already have the data
     if (!tableData[tableName]) {
       await fetchTableData(tableName);
     }
@@ -194,13 +183,13 @@ const Data = () => {
   
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    setCurrentPage(1); // Reset to first page on search
+    setCurrentPage(1);
   };
   
   const handleFilterChange = (field: string, value: string) => {
     setFilterField(field);
     setFilterValue(value);
-    setCurrentPage(1); // Reset to first page on filter change
+    setCurrentPage(1);
   };
   
   const handleSort = (field: string) => {
@@ -215,9 +204,7 @@ const Data = () => {
   const currentTableInfo = tables.find(t => t.name === selectedTable);
   const fields = currentTableInfo?.fields || [];
   
-  // Apply filtering, sorting, and pagination
   const filteredData = selectedTable ? tableData[selectedTable]?.filter(item => {
-    // Search across all fields
     if (searchQuery) {
       const searchLower = searchQuery.toLowerCase();
       return Object.values(item).some(val => 
@@ -225,7 +212,6 @@ const Data = () => {
       );
     }
     
-    // Apply field-specific filter
     if (filterField && filterValue) {
       const itemValue = item[filterField];
       return itemValue && itemValue.toString().toLowerCase().includes(filterValue.toLowerCase());
@@ -234,7 +220,6 @@ const Data = () => {
     return true;
   }) : [];
   
-  // Apply sorting
   const sortedData = [...(filteredData || [])].sort((a, b) => {
     if (!sortField) return 0;
     
@@ -252,7 +237,6 @@ const Data = () => {
       : (bValue > aValue ? 1 : -1);
   });
   
-  // Apply pagination
   const totalPages = Math.ceil((sortedData?.length || 0) / itemsPerPage);
   const paginatedData = sortedData?.slice(
     (currentPage - 1) * itemsPerPage,
@@ -454,7 +438,6 @@ const Data = () => {
                                 {fields.map(field => (
                                   <TableCell key={field}>
                                     {row[field] !== undefined ? 
-                                      // Handle array display
                                       Array.isArray(row[field]) ? 
                                         JSON.stringify(row[field]) : 
                                         String(row[field]).substring(0, 50) 
