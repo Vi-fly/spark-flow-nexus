@@ -53,7 +53,7 @@ export function ChatAssistant() {
     scrollToBottom();
     checkDatabaseConnection();
     checkSupabaseConnection();
-  }, []);
+  }, [messages]);
 
   const checkDatabaseConnection = async () => {
     try {
@@ -74,7 +74,7 @@ export function ChatAssistant() {
       console.error('Database connection error:', error);
       setDbStatus({
         connected: false,
-        type: databaseConnector.getCurrentConnection()
+        type: null
       });
     }
   };
@@ -118,7 +118,6 @@ export function ChatAssistant() {
       // Format the messages for the API
       const apiMessages = messages
         .concat(userMessage)
-        .filter(msg => msg.sender === 'user' || msg.id === '1') // Include only user messages and the initial system message
         .map(msg => ({
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.content
@@ -207,22 +206,21 @@ export function ChatAssistant() {
                 {message.sender === 'user' ? (
                   <p>{message.content}</p>
                 ) : (
-                  <ReactMarkdown 
+                  <ReactMarkdown
                     components={{
-                      h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-2 mb-1" {...props} />,
-                      h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-2 mb-1" {...props} />,
-                      h3: ({node, ...props}) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
-                      p: ({node, ...props}) => <p className="mb-2" {...props} />,
-                      ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2" {...props} />,
-                      ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2" {...props} />,
-                      li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                      a: ({node, ...props}) => <a className="text-blue-500 hover:underline" {...props} />,
-                      code: ({node, ...props}) => {
-                        const isInline = !props.className;
-                        return isInline ? (
-                          <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded" {...props} />
+                      h1: ({node, ...props}) => <h1 style={{fontSize: "1.5rem", fontWeight: "bold", marginTop: "0.5rem", marginBottom: "0.25rem"}} {...props} />,
+                      h2: ({node, ...props}) => <h2 style={{fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.5rem", marginBottom: "0.25rem"}} {...props} />,
+                      h3: ({node, ...props}) => <h3 style={{fontSize: "1.125rem", fontWeight: "bold", marginTop: "0.5rem", marginBottom: "0.25rem"}} {...props} />,
+                      p: ({node, ...props}) => <p style={{marginBottom: "0.5rem"}} {...props} />,
+                      ul: ({node, ...props}) => <ul style={{listStyleType: "disc", paddingLeft: "1.25rem", marginBottom: "0.5rem"}} {...props} />,
+                      ol: ({node, ...props}) => <ol style={{listStyleType: "decimal", paddingLeft: "1.25rem", marginBottom: "0.5rem"}} {...props} />,
+                      li: ({node, ...props}) => <li style={{marginBottom: "0.25rem"}} {...props} />,
+                      a: ({node, ...props}) => <a style={{color: "#3B82F6", textDecoration: "underline"}} {...props} />,
+                      code: ({node, inline, ...props}) => {
+                        return inline ? (
+                          <code style={{backgroundColor: "#F1F5F9", padding: "0.125rem 0.25rem", borderRadius: "0.25rem"}} {...props} />
                         ) : (
-                          <code className="block bg-gray-200 dark:bg-gray-800 p-2 rounded mb-2 overflow-x-auto" {...props} />
+                          <code style={{display: "block", backgroundColor: "#F1F5F9", padding: "0.5rem", borderRadius: "0.25rem", marginBottom: "0.5rem", overflowX: "auto"}} {...props} />
                         );
                       },
                     }}

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import {
   MessageSquare,
   ArrowUp,
@@ -46,6 +47,7 @@ const Discussions = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showCreatePostForm, setShowCreatePostForm] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const availableTags = ['Question', 'Discussion', 'Announcement', 'Help', 'Project', 'Bug', 'Feature'];
 
@@ -54,21 +56,48 @@ const Discussions = () => {
   }, []);
 
   const loadPosts = async () => {
-    const fetchedPosts = await DiscussionService.getPosts();
-    setPosts(fetchedPosts);
-    
-    const commentsMap: Record<string, DiscussionComment[]> = {};
-    
-    await Promise.all(
-      fetchedPosts.map(async (post) => {
-        const postComments = await DiscussionService.getComments(post.id);
-        if (postComments.length > 0) {
-          commentsMap[post.id] = postComments;
-        }
-      })
-    );
-    
-    setComments(commentsMap);
+    setIsLoading(true);
+    try {
+      const { data: postsData, error: postsError } = await supabase
+        .from('discussion_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (postsError) {
+        throw postsError;
+      }
+      
+      setPosts(postsData || []);
+      
+      const commentsMap: Record<string, DiscussionComment[]> = {};
+      
+      if (postsData && postsData.length > 0) {
+        await Promise.all(
+          postsData.map(async (post) => {
+            const { data: commentsData, error: commentsError } = await supabase
+              .from('discussion_comments')
+              .select('*')
+              .eq('post_id', post.id)
+              .order('created_at', { ascending: true });
+              
+            if (!commentsError && commentsData && commentsData.length > 0) {
+              commentsMap[post.id] = commentsData;
+            }
+          })
+        );
+      }
+      
+      setComments(commentsMap);
+    } catch (error) {
+      console.error('Error loading discussion data:', error);
+      toast({
+        title: "Failed to load discussions",
+        description: "There was an error loading the discussion data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreatePost = async () => {
@@ -90,23 +119,41 @@ const Discussions = () => {
       return;
     }
     
-    const newPost = {
-      user_id: user.id,
-      title: newPostTitle,
-      content: newPostContent,
-      upvotes: 0,
-      downvotes: 0,
-      tags: selectedTags
-    };
-    
-    const createdPost = await DiscussionService.createPost(newPost);
-    
-    if (createdPost) {
-      setPosts([createdPost, ...posts]);
+    try {
+      const { data: newPost, error } = await supabase
+        .from('discussion_posts')
+        .insert({
+          user_id: user.id,
+          title: newPostTitle,
+          content: newPostContent,
+          upvotes: 0,
+          downvotes: 0,
+          tags: selectedTags
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Post Created",
+        description: "Your post has been created successfully",
+      });
+      
+      setPosts([newPost, ...posts]);
       setSelectedTags([]);
       setNewPostTitle('');
       setNewPostContent('');
       setShowCreatePostForm(false);
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast({
+        title: "Failed to Create Post",
+        description: "There was an error creating your post",
+        variant: "destructive"
+      });
     }
   };
 
@@ -131,26 +178,44 @@ const Discussions = () => {
       return;
     }
     
-    const newComment = {
-      post_id: postId,
-      user_id: user.id,
-      content: content,
-      upvotes: 0,
-      downvotes: 0,
-      parent_id: null
-    };
-    
-    const createdComment = await DiscussionService.createComment(newComment);
-    
-    if (createdComment) {
+    try {
+      const { data: newComment, error } = await supabase
+        .from('discussion_comments')
+        .insert({
+          post_id: postId,
+          user_id: user.id,
+          content: content,
+          upvotes: 0,
+          downvotes: 0,
+          parent_id: null
+        })
+        .select()
+        .single();
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Comment Added",
+        description: "Your comment has been added successfully",
+      });
+      
       setComments({
         ...comments,
-        [postId]: [...(comments[postId] || []), createdComment]
+        [postId]: [...(comments[postId] || []), newComment]
       });
       
       setNewCommentContent({
         ...newCommentContent,
         [postId]: ''
+      });
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      toast({
+        title: "Failed to Add Comment",
+        description: "There was an error adding your comment",
+        variant: "destructive"
       });
     }
   };
@@ -169,61 +234,78 @@ const Discussions = () => {
       return;
     }
     
-    if (type === 'post') {
-      const post = posts.find(p => p.id === id);
-      if (!post) return;
-      
-      const updatedPost = {
-        ...post,
-        upvotes: voteType === 'upvote' ? post.upvotes + 1 : post.upvotes,
-        downvotes: voteType === 'downvote' ? post.downvotes + 1 : post.downvotes
-      };
-      
-      const success = await DiscussionService.updatePostVotes(
-        id,
-        updatedPost.upvotes,
-        updatedPost.downvotes
-      );
-      
-      if (success) {
+    try {
+      if (type === 'post') {
+        const post = posts.find(p => p.id === id);
+        if (!post) return;
+        
+        const updatedPost = {
+          ...post,
+          upvotes: voteType === 'upvote' ? post.upvotes + 1 : post.upvotes,
+          downvotes: voteType === 'downvote' ? post.downvotes + 1 : post.downvotes
+        };
+        
+        const { error } = await supabase
+          .from('discussion_posts')
+          .update({
+            upvotes: updatedPost.upvotes,
+            downvotes: updatedPost.downvotes
+          })
+          .eq('id', id);
+        
+        if (error) {
+          throw error;
+        }
+        
         const updatedPosts = posts.map(p => p.id === id ? updatedPost : p);
         setPosts(updatedPosts);
-      }
-    } else {
-      let commentFound = false;
-      const updatedComments = { ...comments };
-      
-      for (const postId in updatedComments) {
-        updatedComments[postId] = updatedComments[postId].map(comment => {
-          if (comment.id === id) {
-            commentFound = true;
-            return {
-              ...comment,
-              upvotes: voteType === 'upvote' ? comment.upvotes + 1 : comment.upvotes,
-              downvotes: voteType === 'downvote' ? comment.downvotes + 1 : comment.downvotes
-            };
-          }
-          return comment;
-        });
-      }
-      
-      if (commentFound) {
+      } else {
+        let commentFound = false;
+        const updatedComments = { ...comments };
+        
         for (const postId in updatedComments) {
-          const updatedComment = updatedComments[postId].find(c => c.id === id);
-          if (updatedComment) {
-            const success = await DiscussionService.updateCommentVotes(
-              id,
-              updatedComment.upvotes,
-              updatedComment.downvotes
-            );
-            
-            if (success) {
-              setComments(updatedComments);
+          updatedComments[postId] = updatedComments[postId].map(comment => {
+            if (comment.id === id) {
+              commentFound = true;
+              return {
+                ...comment,
+                upvotes: voteType === 'upvote' ? comment.upvotes + 1 : comment.upvotes,
+                downvotes: voteType === 'downvote' ? comment.downvotes + 1 : comment.downvotes
+              };
             }
-            break;
+            return comment;
+          });
+        }
+        
+        if (commentFound) {
+          for (const postId in updatedComments) {
+            const updatedComment = updatedComments[postId].find(c => c.id === id);
+            if (updatedComment) {
+              const { error } = await supabase
+                .from('discussion_comments')
+                .update({
+                  upvotes: updatedComment.upvotes,
+                  downvotes: updatedComment.downvotes
+                })
+                .eq('id', id);
+                
+              if (error) {
+                throw error;
+              }
+              
+              setComments(updatedComments);
+              break;
+            }
           }
         }
       }
+    } catch (error) {
+      console.error('Error updating vote:', error);
+      toast({
+        title: "Failed to Vote",
+        description: "There was an error registering your vote",
+        variant: "destructive"
+      });
     }
   };
 
@@ -251,8 +333,21 @@ const Discussions = () => {
     setSearchQuery(query);
     
     if (query.trim()) {
-      const results = await DiscussionService.searchPosts(query);
-      setPosts(results);
+      try {
+        const { data, error } = await supabase
+          .from('discussion_posts')
+          .select('*')
+          .or(`title.ilike.%${query}%,content.ilike.%${query}%`)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+        
+        setPosts(data || []);
+      } catch (error) {
+        console.error('Error searching posts:', error);
+      }
     } else {
       loadPosts();
     }
@@ -262,8 +357,21 @@ const Discussions = () => {
     setSelectedTags(tags);
     
     if (tags.length > 0) {
-      const results = await DiscussionService.filterPostsByTags(tags);
-      setPosts(results);
+      try {
+        const { data, error } = await supabase
+          .from('discussion_posts')
+          .select('*')
+          .contains('tags', tags)
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          throw error;
+        }
+        
+        setPosts(data || []);
+      } catch (error) {
+        console.error('Error filtering posts by tags:', error);
+      }
     } else {
       loadPosts();
     }

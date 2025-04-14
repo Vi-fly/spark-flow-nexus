@@ -1,7 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Task } from "@/services/taskService";
-import { Contact } from "@/services/contactService";
 
 export type ChatMessage = {
   id: string;
@@ -40,7 +38,7 @@ export const fetchDatabaseContext = async (): Promise<string> => {
       .from('tasks')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(10);
 
     if (tasksError) throw tasksError;
 
@@ -49,7 +47,7 @@ export const fetchDatabaseContext = async (): Promise<string> => {
       .from('contacts')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(5);
+      .limit(10);
 
     if (contactsError) throw contactsError;
 
@@ -88,7 +86,7 @@ export const getChatResponse = async (messages: { role: string; content: string 
       console.error('Error calling Groq API:', error);
       throw new Error(`Failed to get response: ${error.message}`);
     }
-
+    
     const response = data as GroqApiResponse;
     
     if (response.choices && response.choices[0]) {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Send, UserPlus, Mail, FileText, User, Check, Loader2, RefreshCw, AtSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Contact } from '@/types/database.types';
-import { databaseConnector } from '@/utils/databaseConnector';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface EmailTemplate {
   id: string;
@@ -40,50 +40,21 @@ export const EmailSystem = () => {
   const [activeTab, setActiveTab] = useState('compose');
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   
-  // Load data on component mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        // In a real app, you would fetch from an API
-        // For demo purposes, we'll create mock data
-        const mockContacts: Contact[] = [
-          {
-            id: "1",
-            user_id: "user1",
-            name: "John Doe",
-            email: "john.doe@example.com",
-            phone: "+1234567890",
-            company: "Acme Inc.",
-            role: "Frontend Developer",
-            notes: "Skilled in React and TypeScript",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: "2",
-            user_id: "user1",
-            name: "Jane Smith",
-            email: "jane.smith@example.com",
-            phone: "+1987654321",
-            company: "Tech Solutions",
-            role: "UX Designer",
-            notes: "Expert in Figma and user research",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: "3",
-            user_id: "user1",
-            name: "Bob Johnson",
-            email: "bob.johnson@example.com",
-            phone: "+1122334455",
-            company: "Data Corp",
-            role: "Backend Developer",
-            notes: "Python and Django specialist",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ];
+        setIsLoading(true);
+        
+        const { data: contactsData, error: contactsError } = await supabase
+          .from('contacts')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (contactsError) {
+          throw contactsError;
+        }
+        
+        setContacts(contactsData || []);
         
         const mockTemplates: EmailTemplate[] = [
           {
@@ -109,17 +80,15 @@ export const EmailSystem = () => {
         const mockDrafts: EmailDraft[] = [
           {
             id: "1",
-            to: ["john.doe@example.com"],
+            to: contactsData && contactsData.length > 0 ? [contactsData[0].email || ""] : [],
             subject: "Website Redesign Project",
-            content: "Hi John,\n\nI wanted to discuss the website redesign project with you. Can we schedule a call tomorrow?\n\nBest,\nMe",
+            content: "Hi,\n\nI wanted to discuss the website redesign project with you. Can we schedule a call tomorrow?\n\nBest,\nMe",
             createdAt: new Date(new Date().setDate(new Date().getDate() - 2))
           }
         ];
         
-        setContacts(mockContacts);
         setTemplates(mockTemplates);
         setDrafts(mockDrafts);
-        setIsLoading(false);
       } catch (error) {
         console.error('Error loading data:', error);
         toast({
@@ -127,6 +96,7 @@ export const EmailSystem = () => {
           description: "Could not load email data",
           variant: "destructive"
         });
+      } finally {
         setIsLoading(false);
       }
     };
@@ -134,7 +104,6 @@ export const EmailSystem = () => {
     loadData();
   }, [toast]);
   
-  // Handle AI generation of email content
   const generateEmailContent = async () => {
     if (!prompt.trim()) {
       toast({
@@ -148,62 +117,43 @@ export const EmailSystem = () => {
     setIsGenerating(true);
     
     try {
-      // In a real app, you would call an AI service via an API
-      // For demo purposes, we'll simulate the API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const contactContext = contacts.length > 0 
+        ? `Recipients: ${selectedContacts.map(id => contacts.find(c => c.id === id)?.name).join(', ')}`
+        : '';
       
-      let generatedSubject = '';
-      let generatedContent = '';
+      const { data, error } = await supabase.functions.invoke('groq-chat', {
+        body: { 
+          messages: [
+            { role: 'user', content: `Generate an email about: ${prompt}. ${contactContext}` }
+          ],
+          dbContext: '' 
+        },
+      });
       
-      if (prompt.toLowerCase().includes('update')) {
-        generatedSubject = 'Project Update - Task Manager App';
-        generatedContent = `Dear ${selectedContacts.length > 0 ? contacts.find(c => c.id === selectedContacts[0])?.name : 'Team'},
-
-I wanted to provide an update on our Task Manager App project. We've made significant progress over the past week:
-
-1. Completed the frontend UI components
-2. Integrated the database connections
-3. Implemented the authentication system
-4. Added the Gantt chart visualization
-
-The project is currently on track for our planned release date. Our next steps will be focused on testing and optimization.
-
-Please let me know if you have any questions or suggestions.
-
-Best regards,
-[Your Name]`;
-      } else if (prompt.toLowerCase().includes('meeting')) {
-        generatedSubject = 'Meeting Invitation: Project Planning Session';
-        generatedContent = `Hi ${selectedContacts.length > 0 ? contacts.find(c => c.id === selectedContacts[0])?.name : 'Team'},
-
-I'd like to invite you to a project planning session on ${new Date().toLocaleDateString()} at 2:00 PM to discuss our next steps for the Task Manager App.
-
-During this meeting, we'll cover:
-- Current project status
-- Resource allocation
-- Timeline adjustments
-- Feature prioritization
-
-The meeting will be held via Zoom. Please confirm your availability.
-
-Thanks,
-[Your Name]`;
-      } else {
-        generatedSubject = 'Task Manager Project - Next Steps';
-        generatedContent = `Hello ${selectedContacts.length > 0 ? contacts.find(c => c.id === selectedContacts[0])?.name : 'Team'},
-
-Based on your request for "${prompt}", I've prepared the following information:
-
-${prompt}
-
-I hope this helps with our ongoing work. Please let me know if you need any clarification or have additional requests.
-
-Regards,
-[Your Name]`;
+      if (error) {
+        throw error;
       }
       
-      setSubject(generatedSubject);
-      setContent(generatedContent);
+      if (data.choices && data.choices[0]) {
+        const responseText = data.choices[0].message.content;
+        
+        const subjectMatch = responseText.match(/Subject: (.*?)(?:\n|$)/);
+        const bodyMatch = responseText.match(/(?:Body:|Email:|Message:)([\s\S]*)/);
+        
+        if (subjectMatch && subjectMatch[1]) {
+          setSubject(subjectMatch[1].trim());
+        } else {
+          setSubject(`RE: ${prompt}`);
+        }
+        
+        if (bodyMatch && bodyMatch[1]) {
+          setContent(bodyMatch[1].trim());
+        } else {
+          setContent(responseText);
+        }
+      } else {
+        throw new Error('Invalid response format');
+      }
       
       toast({
         title: "Email content generated",
@@ -221,7 +171,6 @@ Regards,
     }
   };
   
-  // Handle sending email
   const handleSendEmail = async () => {
     if (selectedContacts.length === 0) {
       toast({
@@ -251,8 +200,6 @@ Regards,
     }
     
     try {
-      // In a real app, you would send via an API
-      // For demo purposes, we'll simulate sending
       toast({
         title: "Sending email...",
         description: "Your email is being sent"
@@ -265,7 +212,6 @@ Regards,
         description: `Email successfully sent to ${selectedContacts.length} recipient(s)`
       });
       
-      // Clear form
       setSelectedContacts([]);
       setSubject('');
       setContent('');
@@ -281,7 +227,6 @@ Regards,
     }
   };
   
-  // Handle saving draft
   const handleSaveDraft = () => {
     if (!subject.trim() && !content.trim() && selectedContacts.length === 0) {
       toast({
@@ -308,7 +253,6 @@ Regards,
     });
   };
   
-  // Handle loading a template
   const handleLoadTemplate = (templateId: string) => {
     const template = templates.find(t => t.id === templateId);
     if (template) {
@@ -323,7 +267,6 @@ Regards,
     }
   };
   
-  // Handle loading a draft
   const handleLoadDraft = (draftId: string) => {
     const draft = drafts.find(d => d.id === draftId);
     if (draft) {
@@ -343,7 +286,6 @@ Regards,
     }
   };
   
-  // Handle deleting a draft
   const handleDeleteDraft = (draftId: string) => {
     setDrafts(drafts.filter(d => d.id !== draftId));
     
@@ -389,7 +331,6 @@ Regards,
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Recipients */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">To:</label>
                 <Select>
@@ -449,7 +390,6 @@ Regards,
                 )}
               </div>
               
-              {/* Subject */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Subject:</label>
                 <Input 
@@ -459,7 +399,6 @@ Regards,
                 />
               </div>
               
-              {/* Content */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Content:</label>
                 <Textarea 
@@ -470,7 +409,6 @@ Regards,
                 />
               </div>
               
-              {/* AI generation */}
               <Card className="bg-primary/5">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg">AI Assistant</CardTitle>

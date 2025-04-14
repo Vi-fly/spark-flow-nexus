@@ -1,7 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+// Get the API key from environment variables
+const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") || "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";
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 // CORS headers for the response
@@ -17,11 +18,6 @@ serve(async (req) => {
   }
 
   try {
-    // Check if GROQ_API_KEY exists
-    if (!GROQ_API_KEY) {
-      throw new Error("GROQ_API_KEY is not set. Please add it to the Supabase project secrets.");
-    }
-
     // Parse request body
     const { messages, dbContext } = await req.json();
 
@@ -32,6 +28,33 @@ You can help with the following tasks:
 2. Searching through existing tasks and contacts
 3. Providing information about the database
 4. Answering questions about task and contact management
+
+When creating a task or contact, respond with a JSON action block like this:
+\`\`\`json
+{
+  "type": "createTask",
+  "data": {
+    "title": "Task title",
+    "description": "Task description",
+    "status": "todo",
+    "priority": "medium"
+  }
+}
+\`\`\`
+
+Or for creating a contact:
+\`\`\`json
+{
+  "type": "createContact",
+  "data": {
+    "name": "Contact name",
+    "email": "contact@example.com",
+    "phone": "1234567890",
+    "company": "Company name",
+    "role": "Role title"
+  }
+}
+\`\`\`
 
 Please format your responses using markdown.
 Use proper headings with ## for sections.
