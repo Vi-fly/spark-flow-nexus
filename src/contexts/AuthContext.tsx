@@ -10,7 +10,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, contactDetails?: any) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithProvider: (provider: Provider) => Promise<void>;
   signOut: () => Promise<void>;
@@ -57,39 +57,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Sign up a new user with email and password
    * @param email User's email address
    * @param password User's password
-   * @param contactDetails Optional contact details to save
    */
-  const signUp = async (email: string, password: string, contactDetails?: any) => {
+  const signUp = async (email: string, password: string) => {
     try {
-      const { error, data } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
       });
       
       if (error) throw error;
-      
-      // If we have contact details, save them to the contacts table
-      if (contactDetails && data.user) {
-        const { name, phone, company, role, skills = [] } = contactDetails;
-        
-        const { error: contactError } = await supabase
-          .from('contacts')
-          .insert({
-            user_id: data.user.id,
-            name: name || email.split('@')[0], // Use part of email if name not provided
-            phone: phone || null,
-            company: company || null,
-            role: role || null,
-            skills: Array.isArray(skills) ? skills : [skills].filter(Boolean)
-          });
-          
-        if (contactError) {
-          console.error('Error creating contact profile:', contactError);
-          toast.error('Your account was created but we couldn\'t save your contact details');
-        } else {
-          toast.success('Contact profile created successfully');
-        }
-      }
       
       toast.success("Signup successful! Please check your email to verify your account.");
     } catch (error: any) {
@@ -105,30 +81,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const signIn = async (email: string, password: string) => {
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
       if (error) throw error;
-      
-      // Check if the user already has a contact record
-      if (data.user) {
-        const { data: contactData, error: contactError } = await supabase
-          .from('contacts')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .single();
-          
-        if (contactError && contactError.code !== 'PGRST116') { // Not found error
-          console.error('Error checking contact record:', contactError);
-        }
-        
-        // If no contact record exists, prompt the user to complete their profile
-        if (!contactData) {
-          toast.info("Please complete your contact profile in the settings", { duration: 6000 });
-        }
-      }
       
       toast.success("Successfully logged in!");
       navigate('/');
