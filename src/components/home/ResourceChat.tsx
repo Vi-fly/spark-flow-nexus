@@ -18,6 +18,16 @@ type Message = {
   timestamp: Date;
 };
 
+const getSkillsArray = (skills: unknown): string[] => {
+  if (typeof skills === 'string') {
+    return [skills];
+  }
+  if (Array.isArray(skills)) {
+    return skills.filter(skill => typeof skill === 'string');
+  }
+  return [];
+};
+
 /**
  * ResourceChat component - AI-powered chat for resources using Groq API
  */
@@ -87,22 +97,8 @@ export function ResourceChat() {
         if (skillToSearch) {
           // Find contacts with that skill
           const matchedContacts = contacts.filter(contact => {
-            if (!contact.skills) return false;
-            
-            // Handle string case
-            if (typeof contact.skills === 'string') {
-              return contact.skills.toLowerCase().includes(skillToSearch);
-            }
-            
-            // Handle array case - fixed to properly check types
-            if (Array.isArray(contact.skills)) {
-              return contact.skills.some(skill => {
-                // Explicitly check that the skill is a string before using toLowerCase
-                return typeof skill === 'string' && skill.toLowerCase().includes(skillToSearch);
-              });
-            }
-            
-            return false;
+            const contactSkills = getSkillsArray(contact.skills);
+            return contactSkills.some(skill => skill.toLowerCase().includes(skillToSearch));
           });
           
           if (matchedContacts.length > 0) {
