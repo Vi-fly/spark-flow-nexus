@@ -94,15 +94,11 @@ export function ResourceChat() {
               return contact.skills.toLowerCase().includes(skillToSearch);
             }
             
-            // Handle array case
+            // Handle array case - fixed to properly check types
             if (Array.isArray(contact.skills)) {
-              // Fixed: Added proper type checking and safety for each skill element
               return contact.skills.some(skill => {
-                // Make sure skill is a string before calling toLowerCase
-                if (typeof skill === 'string') {
-                  return skill.toLowerCase().includes(skillToSearch);
-                }
-                return false;
+                // Explicitly check that the skill is a string before using toLowerCase
+                return typeof skill === 'string' && skill.toLowerCase().includes(skillToSearch);
               });
             }
             
