@@ -250,8 +250,11 @@ export function ChatAssistant() {
                           }
                         }
                         
-                        // Regular code formatting - fixed this part!
-                        return props.className?.includes("inline") ? (
+                        // Fixed: Use proper type checking for inline code detection
+                        // React-markdown passes different props based on the type of content
+                        const isInline = className ? className.includes("inline") : false;
+                        
+                        return isInline ? (
                           <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono" {...props}>
                             {children}
                           </code>

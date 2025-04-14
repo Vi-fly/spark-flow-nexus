@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,14 +87,20 @@ export function ResourceChat() {
           // Find contacts with that skill
           const matchedContacts = contacts.filter(contact => {
             if (!contact.skills) return false;
+            
+            // Handle string case
             if (typeof contact.skills === 'string') {
               return contact.skills.toLowerCase().includes(skillToSearch);
             }
+            
+            // Handle array case
             if (Array.isArray(contact.skills)) {
+              // Fixed: Added proper type checking before calling toLowerCase
               return contact.skills.some(skill => 
                 typeof skill === 'string' && skill.toLowerCase().includes(skillToSearch)
               );
             }
+            
             return false;
           });
           
@@ -113,8 +118,10 @@ export function ResourceChat() {
         const companyToSearch = companyMatches ? companyMatches[2].toLowerCase() : null;
         
         if (companyToSearch) {
+          // Fixed: Added proper type checking before calling toLowerCase
           const matchedContacts = contacts.filter(contact => 
-            contact.company && typeof contact.company === 'string' && contact.company.toLowerCase().includes(companyToSearch)
+            contact.company && typeof contact.company === 'string' && 
+            contact.company.toLowerCase().includes(companyToSearch)
           );
           
           if (matchedContacts.length > 0) {
