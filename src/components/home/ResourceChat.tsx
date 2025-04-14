@@ -26,6 +26,7 @@ export function ResourceChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [chatHistory, setChatHistory] = useState<Array<{user: string, bot: string}>>([]);
   
   // Reference for message container to enable auto-scrolling
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -95,10 +96,14 @@ export function ResourceChat() {
             
             // Handle array case
             if (Array.isArray(contact.skills)) {
-              // Fixed: Added proper type checking before calling toLowerCase
-              return contact.skills.some(skill => 
-                typeof skill === 'string' && skill.toLowerCase().includes(skillToSearch)
-              );
+              // Fixed: Added proper type checking and safety for each skill element
+              return contact.skills.some(skill => {
+                // Make sure skill is a string before calling toLowerCase
+                if (typeof skill === 'string') {
+                  return skill.toLowerCase().includes(skillToSearch);
+                }
+                return false;
+              });
             }
             
             return false;
@@ -147,6 +152,26 @@ export function ResourceChat() {
   };
   
   /**
+   * Save a chat to history
+   */
+  const saveToChatHistory = (userMessage: string, botResponse: string) => {
+    const updatedHistory = [...chatHistory, { user: userMessage, bot: botResponse }];
+    // Keep only the last 10 conversations
+    if (updatedHistory.length > 10) {
+      updatedHistory.shift();
+    }
+    setChatHistory(updatedHistory);
+    
+    // Save to local storage
+    localStorage.setItem('resourceChatHistory', JSON.stringify(updatedHistory));
+    
+    toast({
+      title: 'Suggestion saved',
+      description: 'Your conversation has been saved to history',
+    });
+  };
+  
+  /**
    * Handle message submission
    */
   const handleSubmit = async (e: React.FormEvent) => {
@@ -179,6 +204,10 @@ export function ResourceChat() {
       };
       
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Auto-save to chat history
+      saveToChatHistory(inputMessage, response);
+      
     } catch (error) {
       console.error('Error getting AI response:', error);
       toast({
