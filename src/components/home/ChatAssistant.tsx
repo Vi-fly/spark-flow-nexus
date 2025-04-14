@@ -7,6 +7,10 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { databaseConnector } from '@/utils/databaseConnector';
+import ReactMarkdown from 'react-markdown';
+import { getChatResponse } from '@/services/chatService';
+import { parseAction, executeAction } from '@/utils/chatActionProcessor';
+import { supabase } from '@/integrations/supabase/client';
 
 type Message = {
   id: string;
@@ -29,7 +33,7 @@ export function ChatAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: generateId(),
-      content: "Hello! I'm your AI assistant. How can I help you with task management today?",
+      content: "## Welcome to Task Manager AI\n\nI'm your AI assistant. I can help you manage tasks and contacts using natural language. Try asking me to create tasks, search data, or answer questions about your project.",
       sender: 'ai',
       timestamp: new Date(),
     },
@@ -48,6 +52,7 @@ export function ChatAssistant() {
   useEffect(() => {
     scrollToBottom();
     checkDatabaseConnection();
+    checkSupabaseConnection();
   }, []);
 
   const checkDatabaseConnection = async () => {
@@ -74,6 +79,20 @@ export function ChatAssistant() {
     }
   };
 
+  const checkSupabaseConnection = async () => {
+    try {
+      const { data, error } = await supabase.from('tasks').select('count');
+      if (!error) {
+        toast({
+          title: "Supabase Connected",
+          description: "Connected to Supabase database",
+        });
+      }
+    } catch (error) {
+      console.error('Supabase connection error:', error);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -96,12 +115,40 @@ export function ChatAssistant() {
     setIsLoading(true);
     
     try {
-      await mockAIResponse(input);
+      // Format the messages for the API
+      const apiMessages = messages
+        .concat(userMessage)
+        .filter(msg => msg.sender === 'user' || msg.id === '1') // Include only user messages and the initial system message
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        }));
+      
+      // Get response from Groq API via our edge function
+      const responseText = await getChatResponse(apiMessages);
+      
+      // Check if the response contains an action to execute
+      const action = parseAction(responseText);
+      let actionResult = '';
+      
+      if (action) {
+        actionResult = await executeAction(action);
+      }
+      
+      // Add AI response
+      const aiMessage: Message = {
+        id: generateId(),
+        content: responseText + (actionResult ? `\n\n*Action Result: ${actionResult}*` : ''),
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Error generating AI response:', error);
       const errorMessage: Message = {
         id: generateId(),
-        content: "I'm sorry, I encountered an error. Please try again later.",
+        content: "## Error\nI'm sorry, I encountered an error. Please try again later.",
         sender: 'ai',
         timestamp: new Date(),
       };
@@ -115,40 +162,6 @@ export function ChatAssistant() {
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const mockAIResponse = async (userInput: string): Promise<void> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const lowerInput = userInput.toLowerCase();
-    let responseText = "";
-    
-    if (lowerInput.includes('create') && lowerInput.includes('task')) {
-      responseText = "I've created a new task based on your request. You can view and edit it in the Tasks section.";
-    } else if (lowerInput.includes('show') && lowerInput.includes('high priority')) {
-      responseText = "I found 3 high priority tasks. You can view them in the Tasks section with the priority filter set to 'High'.";
-    } else if (lowerInput.includes('contact') && lowerInput.includes('skill')) {
-      responseText = "I found 5 contacts with the requested skills. You can view them in the Contacts section.";
-    } else if (lowerInput.includes('add') && lowerInput.includes('meeting')) {
-      responseText = "I've added the meeting to your calendar. You can view it in the Calendar section.";
-    } else if (lowerInput.includes('database') || lowerInput.includes('connect')) {
-      responseText = dbStatus.connected 
-        ? `You're currently connected to a ${dbStatus.type} database.` 
-        : "You're not connected to any database. Please configure your database in the Settings page.";
-    } else {
-      responseText = "I understand you need assistance with that. How would you like me to proceed?";
-    }
-    
-    // Add AI response
-    const aiMessage: Message = {
-      id: generateId(),
-      content: responseText,
-      sender: 'ai',
-      timestamp: new Date(),
-    };
-    
-    setMessages(prev => [...prev, aiMessage]);
   };
 
   const useSuggestion = (suggestion: string) => {
@@ -185,13 +198,35 @@ export function ChatAssistant() {
             >
               <div 
                 className={cn(
-                  "chat-message animate-fade-in max-w-[85%] px-4 py-2 rounded-lg",
+                  "chat-message max-w-[85%] px-4 py-2 rounded-lg",
                   message.sender === 'user' 
                     ? "bg-primary text-primary-foreground" 
                     : "bg-muted"
                 )}
               >
-                <p>{message.content}</p>
+                {message.sender === 'user' ? (
+                  <p>{message.content}</p>
+                ) : (
+                  <ReactMarkdown 
+                    className="prose dark:prose-invert prose-sm max-w-none"
+                    components={{
+                      h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-2 mb-1" {...props} />,
+                      h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-2 mb-1" {...props} />,
+                      h3: ({node, ...props}) => <h3 className="text-md font-bold mt-2 mb-1" {...props} />,
+                      p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                      ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2" {...props} />,
+                      ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2" {...props} />,
+                      li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                      a: ({node, ...props}) => <a className="text-blue-500 hover:underline" {...props} />,
+                      code: ({node, inline, ...props}) => 
+                        inline 
+                          ? <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded" {...props} />
+                          : <code className="block bg-gray-200 dark:bg-gray-800 p-2 rounded mb-2 overflow-x-auto" {...props} />,
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                )}
                 <div className="text-xs opacity-70 mt-1">
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
@@ -262,4 +297,3 @@ export function ChatAssistant() {
     </Card>
   );
 }
-
