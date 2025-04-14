@@ -12,7 +12,7 @@ const Attendance = () => {
   const handleOpenForm = () => {
     setShowForm(true);
     toast({
-      title: "Google Form Opened",
+      title: "Attendance Form Opened",
       description: "You can now fill the attendance form"
     });
   };
@@ -127,13 +127,13 @@ const Attendance = () => {
       ) : (
         <div className="w-full">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Google Form</h2>
+            <h2 className="text-xl font-bold">Attendance Form</h2>
             <Button variant="outline" onClick={handleCloseForm}>Close Form</Button>
           </div>
           
           <div className="border rounded-lg overflow-hidden h-[800px]">
             <iframe 
-              src="https://docs.google.com/forms/d/e/1FAIpQLSdwAx5H2L7L5o5FtRaZlczIxMsEH4pHkTy95tipTZLqZDEBTw/viewform?embedded=true"
+              src="https://docs.google.com/forms/d/e/1FAIpQLSc8kHkCHt-8Zxs3TJGknYFyfrW9B-zEd9yJTlTMLtATg8ZZhA/viewform?usp=dialog"
               width="100%" 
               height="100%" 
               frameBorder="0" 
@@ -141,7 +141,7 @@ const Attendance = () => {
               marginWidth={0}
               title="Attendance Form"
             >
-              Loading Google Form...
+              Loading Attendance Form...
             </iframe>
           </div>
         </div>

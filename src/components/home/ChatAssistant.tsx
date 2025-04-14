@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, Loader2, Database, RefreshCcw } from 'lucide-react';
+import { Send, Bot, Loader2, Database, RefreshCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -25,7 +25,8 @@ const suggestions = [
   "Create a new task for website redesign",
   "Show me all high priority tasks",
   "What contacts have web development skills?",
-  "Add meeting with design team tomorrow at 2pm"
+  "Add meeting with design team tomorrow at 2pm",
+  "Delete task with ID 5"
 ];
 
 export function ChatAssistant() {
@@ -216,13 +217,60 @@ export function ChatAssistant() {
                       ol: ({node, ...props}) => <ol style={{listStyleType: "decimal", paddingLeft: "1.25rem", marginBottom: "0.5rem"}} {...props} />,
                       li: ({node, ...props}) => <li style={{marginBottom: "0.25rem"}} {...props} />,
                       a: ({node, ...props}) => <a style={{color: "#3B82F6", textDecoration: "underline"}} {...props} />,
-                      code: ({node, inline, ...props}) => {
-                        return inline ? (
-                          <code style={{backgroundColor: "#F1F5F9", padding: "0.125rem 0.25rem", borderRadius: "0.25rem"}} {...props} />
+                      code: ({node, className, children, ...props}) => {
+                        // Check if this is an inline code block
+                        if (className === "language-json") {
+                          try {
+                            // Try to parse JSON and display it as a table
+                            const jsonData = JSON.parse(children[0].toString());
+                            return (
+                              <div className="bg-gray-100 p-3 rounded-md my-2 overflow-auto">
+                                <div className="font-medium text-sm mb-1 text-gray-700">JSON Action:</div>
+                                <div className="bg-white p-2 rounded border border-gray-200">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="font-medium">Type:</div>
+                                    <div>{jsonData.type}</div>
+                                    {jsonData.data && Object.entries(jsonData.data).map(([key, value]) => (
+                                      <React.Fragment key={key}>
+                                        <div className="font-medium">{key}:</div>
+                                        <div>{String(value)}</div>
+                                      </React.Fragment>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          } catch (e) {
+                            // If JSON parsing fails, display as regular code
+                            return (
+                              <code className="bg-gray-100 p-3 rounded-md block overflow-x-auto my-2" {...props}>
+                                {children}
+                              </code>
+                            );
+                          }
+                        }
+                        
+                        // Regular code formatting
+                        return props.inline ? (
+                          <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                            {children}
+                          </code>
                         ) : (
-                          <code style={{display: "block", backgroundColor: "#F1F5F9", padding: "0.5rem", borderRadius: "0.25rem", marginBottom: "0.5rem", overflowX: "auto"}} {...props} />
+                          <code className="bg-gray-100 p-3 rounded-md block overflow-x-auto my-2" {...props}>
+                            {children}
+                          </code>
                         );
                       },
+                      table: ({node, ...props}) => (
+                        <div className="overflow-x-auto my-4">
+                          <table className="min-w-full divide-y divide-gray-200 border rounded-lg" {...props} />
+                        </div>
+                      ),
+                      thead: ({node, ...props}) => <thead className="bg-gray-50" {...props} />,
+                      tbody: ({node, ...props}) => <tbody className="divide-y divide-gray-200" {...props} />,
+                      tr: ({node, ...props}) => <tr className="hover:bg-gray-50" {...props} />,
+                      th: ({node, ...props}) => <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" {...props} />,
+                      td: ({node, ...props}) => <td className="px-4 py-2 text-sm" {...props} />,
                     }}
                   >
                     {message.content}

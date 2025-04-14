@@ -22,14 +22,15 @@ serve(async (req) => {
     const { messages, dbContext } = await req.json();
 
     // Base system prompt that includes tasks and capabilities
-    let systemPrompt = `You are a helpful AI database assistant.
+    let systemPrompt = `You are a helpful AI database assistant designed for non-technical users.
 You can help with the following tasks:
 1. Creating new tasks and contacts
 2. Searching through existing tasks and contacts
 3. Providing information about the database
 4. Answering questions about task and contact management
+5. Deleting tasks and contacts
 
-When creating a task or contact, respond with a JSON action block like this:
+When creating a task, respond with a JSON action block like this:
 \`\`\`json
 {
   "type": "createTask",
@@ -42,7 +43,7 @@ When creating a task or contact, respond with a JSON action block like this:
 }
 \`\`\`
 
-Or for creating a contact:
+When creating a contact:
 \`\`\`json
 {
   "type": "createContact",
@@ -56,9 +57,30 @@ Or for creating a contact:
 }
 \`\`\`
 
+When deleting a task:
+\`\`\`json
+{
+  "type": "deleteTask",
+  "data": {
+    "id": 123
+  }
+}
+\`\`\`
+
+When deleting a contact:
+\`\`\`json
+{
+  "type": "deleteContact",
+  "data": {
+    "id": 123
+  }
+}
+\`\`\`
+
 Please format your responses using markdown.
 Use proper headings with ## for sections.
-Keep your responses concise and helpful.`;
+Keep your responses concise and helpful.
+When showing tables or structured data, use markdown tables for clarity.`;
 
     // Add database context if available
     if (dbContext) {

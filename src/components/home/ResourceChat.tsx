@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Bot, Send, User } from 'lucide-react';
-import { getGroqResponse } from '@/services/groqService';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import ReactMarkdown from 'react-markdown';
 
 /**
  * Message type definition
@@ -20,12 +21,6 @@ type Message = {
 
 /**
  * ResourceChat component - AI-powered chat for resources using Groq API
- * 
- * Features:
- * - Chat interface with the Groq AI model
- * - Message history display
- * - Automatic scrolling to new messages
- * - Loading state while waiting for AI response
  */
 export function ResourceChat() {
   // State for chat messages and input
@@ -44,7 +39,7 @@ export function ResourceChat() {
     setMessages([
       {
         id: '1',
-        content: "Hello! I'm your AI resource assistant. How can I help you today?",
+        content: "Hello! I'm your Resource Assistant. I can help you find information about contacts and their skills. Ask me questions like 'Who has web development skills?' or 'List all contacts who work at XYZ company'.",
         role: 'assistant',
         timestamp: new Date(),
       },
@@ -61,6 +56,85 @@ export function ResourceChat() {
    */
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  
+  /**
+   * Get resource information from Supabase
+   */
+  const getResourceInfo = async (query: string): Promise<string> => {
+    try {
+      // Fetch contacts from Supabase - only get name and skills
+      const { data: contacts, error } = await supabase
+        .from('contacts')
+        .select('name, skills, company');
+      
+      if (error) throw error;
+      
+      // Check if there are any contacts
+      if (!contacts || contacts.length === 0) {
+        return "I couldn't find any contacts in the database. Please add some contacts first.";
+      }
+      
+      // Process the query
+      const lowerQuery = query.toLowerCase();
+      
+      // Search for skills
+      if (lowerQuery.includes('skill') || lowerQuery.includes('know') || lowerQuery.includes('expertise')) {
+        // Extract skill to search for
+        const skillMatches = /\b(javascript|react|design|writing|management|sales|marketing|development|web|mobile|database|backend|frontend)\b/gi.exec(query);
+        const skillToSearch = skillMatches ? skillMatches[0].toLowerCase() : null;
+        
+        if (skillToSearch) {
+          // Find contacts with that skill
+          const matchedContacts = contacts.filter(contact => {
+            if (!contact.skills) return false;
+            if (typeof contact.skills === 'string') {
+              return contact.skills.toLowerCase().includes(skillToSearch);
+            }
+            if (Array.isArray(contact.skills)) {
+              return contact.skills.some(skill => skill.toLowerCase().includes(skillToSearch));
+            }
+            return false;
+          });
+          
+          if (matchedContacts.length > 0) {
+            return `## Contacts with ${skillToSearch} skills\n\n${matchedContacts.map(c => `- ${c.name}`).join('\n')}`;
+          } else {
+            return `I couldn't find any contacts with ${skillToSearch} skills.`;
+          }
+        }
+      }
+      
+      // Search for company
+      if (lowerQuery.includes('company') || lowerQuery.includes('work') || lowerQuery.includes('organization')) {
+        const companyMatches = /\b(at|from|in|for)\s+([a-zA-Z]+)\b/i.exec(query);
+        const companyToSearch = companyMatches ? companyMatches[2].toLowerCase() : null;
+        
+        if (companyToSearch) {
+          const matchedContacts = contacts.filter(contact => 
+            contact.company && contact.company.toLowerCase().includes(companyToSearch)
+          );
+          
+          if (matchedContacts.length > 0) {
+            return `## Contacts at ${companyToSearch}\n\n${matchedContacts.map(c => `- ${c.name}`).join('\n')}`;
+          } else {
+            return `I couldn't find any contacts working at ${companyToSearch}.`;
+          }
+        }
+      }
+      
+      // General list of contacts
+      if (lowerQuery.includes('list') || lowerQuery.includes('all contacts') || lowerQuery.includes('show contacts')) {
+        return `## All Contacts\n\n${contacts.map(c => `- ${c.name}${c.company ? ` (${c.company})` : ''}`).join('\n')}`;
+      }
+      
+      // Default response if no specific query matched
+      return "I can help you find contacts by their skills or company. Try asking something like 'Who has JavaScript skills?' or 'List all contacts who work at Tech Corp'.";
+      
+    } catch (error) {
+      console.error("Error fetching resource info:", error);
+      return "I'm sorry, I encountered an error while trying to fetch the resource information. Please try again later.";
+    }
   };
   
   /**
@@ -84,8 +158,8 @@ export function ResourceChat() {
     setIsLoading(true);
     
     try {
-      // Call Groq API through our edge function
-      const response = await getGroqResponse(inputMessage);
+      // Get response based on contacts database
+      const response = await getResourceInfo(inputMessage);
       
       // Add AI response to chat
       const assistantMessage: Message = {
@@ -100,7 +174,7 @@ export function ResourceChat() {
       console.error('Error getting AI response:', error);
       toast({
         title: 'Error',
-        description: 'Failed to get a response from the AI. Please try again.',
+        description: 'Failed to get information from the database. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -113,7 +187,7 @@ export function ResourceChat() {
       <CardHeader>
         <CardTitle>Resource Assistant</CardTitle>
         <CardDescription>
-          Ask questions about resources, project management, best practices, or any other help you need.
+          Ask questions about contacts and their skills to find the right people for your project.
         </CardDescription>
       </CardHeader>
       
@@ -143,7 +217,25 @@ export function ResourceChat() {
                       : 'bg-muted'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                  {message.role === 'user' ? (
+                    <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                  ) : (
+                    <div className="prose prose-sm dark:prose-invert">
+                      <ReactMarkdown
+                        components={{
+                          h1: ({node, ...props}) => <h1 style={{fontSize: "1.5rem", fontWeight: "bold", marginTop: "0.5rem", marginBottom: "0.25rem"}} {...props} />,
+                          h2: ({node, ...props}) => <h2 style={{fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.5rem", marginBottom: "0.25rem"}} {...props} />,
+                          h3: ({node, ...props}) => <h3 style={{fontSize: "1.125rem", fontWeight: "bold", marginTop: "0.5rem", marginBottom: "0.25rem"}} {...props} />,
+                          p: ({node, ...props}) => <p style={{marginBottom: "0.5rem"}} {...props} />,
+                          ul: ({node, ...props}) => <ul style={{listStyleType: "disc", paddingLeft: "1.25rem", marginBottom: "0.5rem"}} {...props} />,
+                          ol: ({node, ...props}) => <ol style={{listStyleType: "decimal", paddingLeft: "1.25rem", marginBottom: "0.5rem"}} {...props} />,
+                          li: ({node, ...props}) => <li style={{marginBottom: "0.25rem"}} {...props} />,
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                   <div className="mt-1 text-xs opacity-70">
                     {message.timestamp.toLocaleTimeString([], {
                       hour: '2-digit',
@@ -186,7 +278,7 @@ export function ResourceChat() {
       <CardFooter className="pt-4">
         <form onSubmit={handleSubmit} className="w-full flex gap-2">
           <Input
-            placeholder="Type your message..."
+            placeholder="Ask about contacts or skills..."
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             disabled={isLoading}
