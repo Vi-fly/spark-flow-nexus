@@ -1,388 +1,350 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Send, Bot, Loader2, Database, RefreshCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Bot, Send, User, Edit, Trash2 } from 'lucide-react';
-import { executeAction, parseAction } from '@/utils/chatActionProcessor';
+import { cn } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { databaseConnector } from '@/utils/databaseConnector';
 import ReactMarkdown from 'react-markdown';
+import { getChatResponse } from '@/services/chatService';
+import { parseAction, executeAction } from '@/utils/chatActionProcessor';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
-// Message types
-type MessageRole = 'user' | 'assistant' | 'system';
-
-interface Message {
+type Message = {
   id: string;
   content: string;
-  role: MessageRole;
+  sender: 'user' | 'ai';
   timestamp: Date;
-  actions?: {
-    type: string;
-    data: any;
-  }[];
-}
+};
+
+const generateId = () => Math.random().toString(36).substr(2, 9);
+
+const suggestions = [
+  "Create a new task for website redesign",
+  "Show me all high priority tasks",
+  "What contacts have web development skills?",
+  "Add meeting with design team tomorrow at 2pm",
+  "Delete task with ID 5"
+];
 
 export function ChatAssistant() {
-  // State for chat messages and input
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
-  const { user } = useAuth();
-  
-  // Reference for message container to enable auto-scrolling
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  
-  // Get toast for notifications
   const { toast } = useToast();
-  
-  // Initial welcome message
-  useEffect(() => {
-    setMessages([
-      {
-        id: '1',
-        content: "Hi there! I'm your task management assistant. You can ask me to:\n\n- Create tasks\n- Create contacts\n- Delete tasks or contacts\n- Query your data\n\nJust let me know what you need!",
-        role: 'assistant',
-        timestamp: new Date(),
-      },
-    ]);
-  }, []);
-  
-  // Auto-scroll to bottom when messages change
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: generateId(),
+      content: "## Welcome to Task Manager AI\n\nI'm your AI assistant. I can help you manage tasks and contacts using natural language. Try asking me to create tasks, search data, or answer questions about your project.",
+      sender: 'ai',
+      timestamp: new Date(),
+    },
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [dbStatus, setDbStatus] = useState<{
+    connected: boolean;
+    type: string | null;
+  }>({
+    connected: false,
+    type: null
+  });
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     scrollToBottom();
+    checkDatabaseConnection();
+    checkSupabaseConnection();
   }, [messages]);
-  
-  // Focus input when editing is toggled
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
+
+  const checkDatabaseConnection = async () => {
+    try {
+      databaseConnector.loadConnectionConfig();
+      const isConnected = await databaseConnector.testConnection();
+      setDbStatus({
+        connected: isConnected,
+        type: databaseConnector.getCurrentConnection()
+      });
+      
+      if (isConnected) {
+        toast({
+          title: "Database Connected",
+          description: `Connected to ${databaseConnector.getCurrentConnection()} database`,
+        });
+      }
+    } catch (error) {
+      console.error('Database connection error:', error);
+      setDbStatus({
+        connected: false,
+        type: null
+      });
     }
-  }, [isEditing]);
-  
-  // Helper function to scroll to bottom of chat
+  };
+
+  const checkSupabaseConnection = async () => {
+    try {
+      const { data, error } = await supabase.from('tasks').select('count');
+      if (!error) {
+        toast({
+          title: "Supabase Connected",
+          description: "Connected to Supabase database",
+        });
+      }
+    } catch (error) {
+      console.error('Supabase connection error:', error);
+    }
+  };
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-  
-  // Process a message to find any actions
-  const processMessage = (content: string): { processedContent: string; actions: any[] } => {
-    // Parse actions from message content
-    const action = parseAction(content);
+
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     
-    // Remove JSON blocks from displayed content
-    let processedContent = content.replace(/```json\s*({[\s\S]*?})\s*```/g, '');
+    if (!input.trim()) return;
     
-    // Clean up any double line breaks created by removing JSON blocks
-    processedContent = processedContent.replace(/\n\s*\n\s*\n/g, '\n\n');
-    
-    return {
-      processedContent: processedContent.trim(),
-      actions: action ? [action] : [],
-    };
-  };
-  
-  // Execute actions from a message
-  const handleExecuteAction = async (action: any) => {
-    try {
-      const result = await executeAction(action);
-      
-      // Add system message with action result
-      const systemMessage: Message = {
-        id: Date.now().toString(),
-        content: `Action Result: ${result}`,
-        role: 'system',
-        timestamp: new Date(),
-      };
-      
-      setMessages((prev) => [...prev, systemMessage]);
-      
-      // Refresh the UI after successful action execution
-      return result;
-    } catch (error) {
-      console.error('Error executing action:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to execute action: ${error.message}`,
-        variant: 'destructive',
-      });
-      return `Error: ${error.message}`;
-    }
-  };
-  
-  // Handle message submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!inputMessage.trim()) return;
-    
-    // If editing an existing message
-    if (isEditing && editingMessageId) {
-      const updatedMessages = messages.map(msg => 
-        msg.id === editingMessageId 
-          ? { ...msg, content: inputMessage } 
-          : msg
-      );
-      
-      setMessages(updatedMessages);
-      setInputMessage('');
-      setIsEditing(false);
-      setEditingMessageId(null);
-      return;
-    }
-    
-    // Add user message to chat
+    // Add user message
     const userMessage: Message = {
-      id: Date.now().toString(),
-      content: inputMessage,
-      role: 'user',
+      id: generateId(),
+      content: input,
+      sender: 'user',
       timestamp: new Date(),
     };
     
     setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
+    setInput('');
     setIsLoading(true);
     
     try {
-      // Send message to AI
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: inputMessage,
-        }),
-      });
+      // Format the messages for the API
+      const apiMessages = messages
+        .concat(userMessage)
+        .map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'assistant',
+          content: msg.content
+        }));
       
-      if (!response.ok) {
-        throw new Error('Failed to get AI response');
+      // Get response from Groq API via our edge function
+      const responseText = await getChatResponse(apiMessages);
+      
+      // Check if the response contains an action to execute
+      const action = parseAction(responseText);
+      let actionResult = '';
+      
+      if (action) {
+        actionResult = await executeAction(action);
       }
       
-      const responseData = await response.text();
-      
-      // Process the response to extract actions
-      const { processedContent, actions } = processMessage(responseData);
-      
-      // Add AI response to chat
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: processedContent,
-        role: 'assistant',
+      // Add AI response
+      const aiMessage: Message = {
+        id: generateId(),
+        content: responseText + (actionResult ? `\n\n*Action Result: ${actionResult}*` : ''),
+        sender: 'ai',
         timestamp: new Date(),
-        actions: actions,
       };
       
-      setMessages(prev => [...prev, assistantMessage]);
-      
-      // Auto-execute actions if present
-      if (actions && actions.length > 0) {
-        for (const action of actions) {
-          await handleExecuteAction(action);
-        }
-      }
+      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error('Error getting AI response:', error);
+      console.error('Error generating AI response:', error);
+      const errorMessage: Message = {
+        id: generateId(),
+        content: "## Error\nI'm sorry, I encountered an error. Please try again later.",
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      
       toast({
-        title: 'Error',
-        description: 'Failed to get response from the assistant. Please try again.',
-        variant: 'destructive',
+        title: "AI Error",
+        description: "Failed to generate response.",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
-  // Edit a message
-  const handleEditMessage = (message: Message) => {
-    // Only allow editing user messages
-    if (message.role !== 'user') return;
-    
-    setInputMessage(message.content);
-    setIsEditing(true);
-    setEditingMessageId(message.id);
+
+  const useSuggestion = (suggestion: string) => {
+    setInput(suggestion);
   };
-  
-  // Delete a message and its associated AI response
-  const handleDeleteMessage = (messageId: string) => {
-    const messageIndex = messages.findIndex(msg => msg.id === messageId);
-    
-    // If message not found or is not a user message, do nothing
-    if (messageIndex === -1 || messages[messageIndex].role !== 'user') return;
-    
-    // Check if next message is an AI response to this message
-    const nextMessageIndex = messageIndex + 1;
-    const isNextMessageAIResponse = nextMessageIndex < messages.length && 
-      messages[nextMessageIndex].role === 'assistant';
-    
-    // Also check if there's a system message following the AI response
-    const afterNextMessageIndex = nextMessageIndex + 1;
-    const isAfterNextMessageSystem = afterNextMessageIndex < messages.length && 
-      messages[afterNextMessageIndex].role === 'system';
-    
-    // Determine how many messages to remove (user message + potentially AI response + potentially system message)
-    let messagesToRemove = 1;
-    if (isNextMessageAIResponse) messagesToRemove++;
-    if (isNextMessageAIResponse && isAfterNextMessageSystem) messagesToRemove++;
-    
-    // Create new messages array without the deleted messages
-    const newMessages = [
-      ...messages.slice(0, messageIndex),
-      ...messages.slice(messageIndex + messagesToRemove)
-    ];
-    
-    setMessages(newMessages);
-    
-    // If currently editing this message, cancel editing
-    if (editingMessageId === messageId) {
-      setIsEditing(false);
-      setEditingMessageId(null);
-      setInputMessage('');
-    }
-  };
-  
+
   return (
-    <Card className="h-[600px] flex flex-col">
-      <CardHeader>
-        <CardTitle>Task Assistant</CardTitle>
+    <Card className="w-full h-[calc(100vh-8rem)] flex flex-col shadow-md border border-border/40">
+      <CardHeader className="px-6 py-4 border-b">
+        <CardTitle className="text-xl flex items-center space-x-2">
+          <Bot className="h-6 w-6 text-indigo-600" />
+          <span>AI Database Assistant</span>
+          {dbStatus.connected && (
+            <div className="ml-2 flex items-center gap-1 text-sm font-normal text-green-500">
+              <Database className="h-4 w-4" />
+              <span>{dbStatus.type}</span>
+            </div>
+          )}
+        </CardTitle>
         <CardDescription>
-          Ask me to help you manage tasks and contacts
+          Ask me to create tasks, search data, or perform actions using natural language
         </CardDescription>
       </CardHeader>
       
-      {/* Message container */}
-      <CardContent className="flex-1 overflow-auto pb-0">
-        <div className="space-y-4 h-full">
+      <CardContent className="p-4 flex-1 overflow-y-auto">
+        <div className="space-y-4">
           {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              } group`}
+            <div 
+              key={message.id} 
+              className={cn(
+                "flex",
+                message.sender === 'user' ? "justify-end" : "justify-start"
+              )}
             >
-              <div className={`flex items-start max-w-[80%] gap-2 ${
-                message.role === 'system' ? 'w-full justify-center' : ''
-              }`}>
-                {message.role === 'assistant' && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      <Bot className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
+              <div 
+                className={cn(
+                  "chat-message max-w-[85%] px-4 py-2 rounded-lg",
+                  message.sender === 'user' 
+                    ? "bg-primary text-primary-foreground" 
+                    : "bg-muted"
                 )}
-                
-                <div
-                  className={`rounded-lg px-4 py-2 ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : message.role === 'system'
-                      ? 'bg-muted/50 text-muted-foreground text-sm w-fit'
-                      : 'bg-muted'
-                  }`}
-                >
-                  {message.role === 'user' ? (
-                    <div className="relative">
-                      <div className="whitespace-pre-wrap text-sm">{message.content}</div>
-                      
-                      {/* Action buttons for user messages */}
-                      <div className="absolute right-0 top-0 -mt-2 -mr-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                        <Button 
-                          size="icon" 
-                          variant="outline" 
-                          className="h-6 w-6 rounded-full bg-background"
-                          onClick={() => handleEditMessage(message)}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          variant="outline" 
-                          className="h-6 w-6 rounded-full bg-background hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={() => handleDeleteMessage(message.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={`prose prose-sm ${message.role === 'system' ? 'prose-neutral' : 'dark:prose-invert'}`}>
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
-                    </div>
-                  )}
-                  
-                  {message.role !== 'system' && (
-                    <div className="mt-1 text-xs opacity-70">
-                      {message.timestamp.toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </div>
-                  )}
+              >
+                {message.sender === 'user' ? (
+                  <p>{message.content}</p>
+                ) : (
+                  <ReactMarkdown
+                    components={{
+                      h1: ({node, ...props}) => <h1 style={{fontSize: "1.5rem", fontWeight: "bold", marginTop: "0.5rem", marginBottom: "0.25rem"}} {...props} />,
+                      h2: ({node, ...props}) => <h2 style={{fontSize: "1.25rem", fontWeight: "bold", marginTop: "0.5rem", marginBottom: "0.25rem"}} {...props} />,
+                      h3: ({node, ...props}) => <h3 style={{fontSize: "1.125rem", fontWeight: "bold", marginTop: "0.5rem", marginBottom: "0.25rem"}} {...props} />,
+                      p: ({node, ...props}) => <p style={{marginBottom: "0.5rem"}} {...props} />,
+                      ul: ({node, ...props}) => <ul style={{listStyleType: "disc", paddingLeft: "1.25rem", marginBottom: "0.5rem"}} {...props} />,
+                      ol: ({node, ...props}) => <ol style={{listStyleType: "decimal", paddingLeft: "1.25rem", marginBottom: "0.5rem"}} {...props} />,
+                      li: ({node, ...props}) => <li style={{marginBottom: "0.25rem"}} {...props} />,
+                      a: ({node, ...props}) => <a style={{color: "#3B82F6", textDecoration: "underline"}} {...props} />,
+                      code: ({node, className, children, ...props}) => {
+                        // Check if this is a code block (not inline)
+                        if (className === "language-json") {
+                          try {
+                            // Try to parse JSON and display it as a table
+                            const jsonData = JSON.parse(children[0].toString());
+                            return (
+                              <div className="bg-gray-100 p-3 rounded-md my-2 overflow-auto">
+                                <div className="font-medium text-sm mb-1 text-gray-700">JSON Action:</div>
+                                <div className="bg-white p-2 rounded border border-gray-200">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="font-medium">Type:</div>
+                                    <div>{jsonData.type}</div>
+                                    {jsonData.data && Object.entries(jsonData.data).map(([key, value]) => (
+                                      <React.Fragment key={key}>
+                                        <div className="font-medium">{key}:</div>
+                                        <div>{String(value)}</div>
+                                      </React.Fragment>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          } catch (e) {
+                            // If JSON parsing fails, display as regular code
+                            return (
+                              <code className="bg-gray-100 p-3 rounded-md block overflow-x-auto my-2" {...props}>
+                                {children}
+                              </code>
+                            );
+                          }
+                        }
+                        
+                        // Fixed: Use proper type checking for inline code detection
+                        // React-markdown passes different props based on the type of content
+                        const isInline = className ? className.includes("inline") : false;
+                        
+                        return isInline ? (
+                          <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono" {...props}>
+                            {children}
+                          </code>
+                        ) : (
+                          <code className="bg-gray-100 p-3 rounded-md block overflow-x-auto my-2" {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
+                      table: ({node, ...props}) => (
+                        <div className="overflow-x-auto my-4">
+                          <table className="min-w-full divide-y divide-gray-200 border rounded-lg" {...props} />
+                        </div>
+                      ),
+                      thead: ({node, ...props}) => <thead className="bg-gray-50" {...props} />,
+                      tbody: ({node, ...props}) => <tbody className="divide-y divide-gray-200" {...props} />,
+                      tr: ({node, ...props}) => <tr className="hover:bg-gray-50" {...props} />,
+                      th: ({node, ...props}) => <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" {...props} />,
+                      td: ({node, ...props}) => <td className="px-4 py-2 text-sm" {...props} />,
+                    }}
+                  >
+                    {message.content}
+                  </ReactMarkdown>
+                )}
+                <div className="text-xs opacity-70 mt-1">
+                  {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
-                
-                {message.role === 'user' && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-secondary">
-                      <User className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
               </div>
             </div>
           ))}
           
-          {/* Loading indicator */}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="flex gap-2 rounded-lg px-4 py-2 bg-muted">
-                <div className="flex space-x-1 items-center">
-                  <div className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                  <div className="h-2 w-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                  <div className="h-2 w-2 bg-primary rounded-full animate-bounce"></div>
+              <div className="chat-message bg-muted max-w-[85%] px-4 py-2 rounded-lg animate-pulse">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Thinking...</span>
                 </div>
-                <span className="text-sm text-muted-foreground">Thinking...</span>
               </div>
             </div>
           )}
           
-          {/* Invisible element to scroll to */}
           <div ref={messagesEndRef} />
         </div>
       </CardContent>
       
-      {/* Message input form */}
-      <CardFooter className="pt-4">
-        <form onSubmit={handleSubmit} className="w-full flex gap-2">
-          <Input
-            ref={inputRef}
-            placeholder={isEditing ? "Edit your message..." : "Type your message..."}
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            disabled={isLoading}
-            className={`flex-1 ${isEditing ? 'border-amber-500' : ''}`}
-          />
-          {isEditing && (
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => {
-                setIsEditing(false);
-                setEditingMessageId(null);
-                setInputMessage('');
-              }}
+      <CardFooter className="p-4 border-t">
+        <div className="w-full space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((suggestion, index) => (
+              <Button 
+                key={index} 
+                variant="outline" 
+                size="sm" 
+                onClick={() => useSuggestion(suggestion)}
+                className="text-xs hover:bg-muted"
+              >
+                {suggestion}
+              </Button>
+            ))}
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={checkDatabaseConnection}
+              className="text-xs ml-auto"
             >
-              Cancel
+              <RefreshCcw className="h-3 w-3 mr-1" />
+              Check DB
             </Button>
-          )}
-          <Button type="submit" size="icon" disabled={isLoading || !inputMessage.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
+          </div>
+          
+          <form onSubmit={handleSendMessage} className="flex space-x-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1"
+              disabled={isLoading}
+            />
+            <Button 
+              type="submit" 
+              size="icon" 
+              disabled={isLoading || !input.trim()}
+              className="hover:scale-105 transition-transform"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
       </CardFooter>
     </Card>
   );
