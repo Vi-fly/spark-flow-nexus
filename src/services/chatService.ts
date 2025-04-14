@@ -60,10 +60,10 @@ Database Summary:
 - Total Contacts: ${contacts.length}
 
 Recent Tasks:
-${tasks.map((task: Task) => `- ${task.title} (${task.status}, ${task.priority})`).join('\n')}
+${tasks.map((task: any) => `- ${task.title} (${task.status}, ${task.priority})`).join('\n')}
 
 Recent Contacts:
-${contacts.map((contact: Contact) => `- ${contact.name} ${contact.company ? `(${contact.company})` : ''}`).join('\n')}
+${contacts.map((contact: any) => `- ${contact.name} ${contact.company ? `(${contact.company})` : ''}`).join('\n')}
     `;
   } catch (error) {
     console.error('Error fetching database context:', error);

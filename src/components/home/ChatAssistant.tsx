@@ -208,7 +208,6 @@ export function ChatAssistant() {
                   <p>{message.content}</p>
                 ) : (
                   <ReactMarkdown 
-                    className="prose dark:prose-invert prose-sm max-w-none"
                     components={{
                       h1: ({node, ...props}) => <h1 className="text-xl font-bold mt-2 mb-1" {...props} />,
                       h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-2 mb-1" {...props} />,
@@ -218,10 +217,14 @@ export function ChatAssistant() {
                       ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2" {...props} />,
                       li: ({node, ...props}) => <li className="mb-1" {...props} />,
                       a: ({node, ...props}) => <a className="text-blue-500 hover:underline" {...props} />,
-                      code: ({node, inline, ...props}) => 
-                        inline 
-                          ? <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded" {...props} />
-                          : <code className="block bg-gray-200 dark:bg-gray-800 p-2 rounded mb-2 overflow-x-auto" {...props} />,
+                      code: ({node, ...props}) => {
+                        const isInline = !props.className;
+                        return isInline ? (
+                          <code className="bg-gray-200 dark:bg-gray-800 px-1 py-0.5 rounded" {...props} />
+                        ) : (
+                          <code className="block bg-gray-200 dark:bg-gray-800 p-2 rounded mb-2 overflow-x-auto" {...props} />
+                        );
+                      },
                     }}
                   >
                     {message.content}
