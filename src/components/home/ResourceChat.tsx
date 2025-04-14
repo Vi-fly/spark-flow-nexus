@@ -92,7 +92,9 @@ export function ResourceChat() {
               return contact.skills.toLowerCase().includes(skillToSearch);
             }
             if (Array.isArray(contact.skills)) {
-              return contact.skills.some(skill => skill.toLowerCase().includes(skillToSearch));
+              return contact.skills.some(skill => 
+                typeof skill === 'string' && skill.toLowerCase().includes(skillToSearch)
+              );
             }
             return false;
           });
@@ -112,7 +114,7 @@ export function ResourceChat() {
         
         if (companyToSearch) {
           const matchedContacts = contacts.filter(contact => 
-            contact.company && contact.company.toLowerCase().includes(companyToSearch)
+            contact.company && typeof contact.company === 'string' && contact.company.toLowerCase().includes(companyToSearch)
           );
           
           if (matchedContacts.length > 0) {

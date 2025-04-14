@@ -218,7 +218,7 @@ export function ChatAssistant() {
                       li: ({node, ...props}) => <li style={{marginBottom: "0.25rem"}} {...props} />,
                       a: ({node, ...props}) => <a style={{color: "#3B82F6", textDecoration: "underline"}} {...props} />,
                       code: ({node, className, children, ...props}) => {
-                        // Check if this is an inline code block
+                        // Check if this is a code block (not inline)
                         if (className === "language-json") {
                           try {
                             // Try to parse JSON and display it as a table
@@ -250,8 +250,8 @@ export function ChatAssistant() {
                           }
                         }
                         
-                        // Regular code formatting
-                        return props.inline ? (
+                        // Regular code formatting - fixed this part!
+                        return props.className?.includes("inline") ? (
                           <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono" {...props}>
                             {children}
                           </code>
