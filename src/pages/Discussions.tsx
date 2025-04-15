@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { DiscussionPost, DiscussionComment } from '@/types/discussion.types';
+import { DiscussionPost, DiscussionComment, UserVotes, UserVoteRecord, VoteType, ContentType } from '@/types/discussion.types';
 import { DiscussionService } from '@/utils/discussionService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,11 +48,13 @@ const Discussions = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showCreatePostForm, setShowCreatePostForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userVotes, setUserVotes] = useState<UserVotes>({});
 
   const availableTags = ['Question', 'Discussion', 'Announcement', 'Help', 'Project', 'Bug', 'Feature'];
 
   useEffect(() => {
     loadPosts();
+    loadUserVotes();
   }, []);
 
   const loadPosts = async () => {
@@ -97,6 +99,29 @@ const Discussions = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadUserVotes = async () => {
+    if (!user) return;
+    
+    try {
+      const savedVotes = localStorage.getItem(`user_votes_${user.id}`);
+      if (savedVotes) {
+        setUserVotes(JSON.parse(savedVotes));
+      }
+    } catch (error) {
+      console.error('Error loading user votes:', error);
+    }
+  };
+
+  const saveUserVotes = (votes: UserVotes) => {
+    if (!user) return;
+    
+    try {
+      localStorage.setItem(`user_votes_${user.id}`, JSON.stringify(votes));
+    } catch (error) {
+      console.error('Error saving user votes:', error);
     }
   };
 
@@ -221,9 +246,9 @@ const Discussions = () => {
   };
 
   const handleVote = async (
-    type: 'post' | 'comment',
-    id: string,
-    voteType: 'upvote' | 'downvote'
+    entityId: string,
+    entityType: ContentType,
+    voteType: VoteType
   ) => {
     if (!user) {
       toast({
@@ -234,69 +259,129 @@ const Discussions = () => {
       return;
     }
     
+    const existingVote = userVotes[entityId];
+    
+    if (existingVote && existingVote.vote === voteType) {
+      const updatedVotes: UserVotes = { ...userVotes };
+      const updatedRecord: UserVoteRecord = {
+        ...updatedVotes[entityId],
+        vote: null
+      };
+      updatedVotes[entityId] = updatedRecord;
+      
+      setUserVotes(updatedVotes);
+      saveUserVotes(updatedVotes);
+      
+      await updateEntityVoteCount(entityId, entityType, existingVote.vote, null);
+      return;
+    }
+    
+    const previousVote = existingVote?.vote || null;
+    
+    const updatedVotes: UserVotes = { ...userVotes };
+    updatedVotes[entityId] = {
+      type: entityType,
+      vote: voteType
+    };
+    
+    setUserVotes(updatedVotes);
+    saveUserVotes(updatedVotes);
+    
+    await updateEntityVoteCount(entityId, entityType, previousVote, voteType);
+  };
+  
+  const updateEntityVoteCount = async (
+    entityId: string,
+    entityType: ContentType,
+    previousVote: VoteType,
+    newVote: VoteType
+  ) => {
     try {
-      if (type === 'post') {
-        const post = posts.find(p => p.id === id);
+      if (entityType === 'post') {
+        const post = posts.find(p => p.id === entityId);
         if (!post) return;
         
-        const updatedPost = {
-          ...post,
-          upvotes: voteType === 'upvote' ? post.upvotes + 1 : post.upvotes,
-          downvotes: voteType === 'downvote' ? post.downvotes + 1 : post.downvotes
-        };
+        let updatedUpvotes = post.upvotes;
+        let updatedDownvotes = post.downvotes;
+        
+        if (previousVote === 'upvote') {
+          updatedUpvotes--;
+        } else if (previousVote === 'downvote') {
+          updatedDownvotes--;
+        }
+        
+        if (newVote === 'upvote') {
+          updatedUpvotes++;
+        } else if (newVote === 'downvote') {
+          updatedDownvotes++;
+        }
         
         const { error } = await supabase
           .from('discussion_posts')
           .update({
-            upvotes: updatedPost.upvotes,
-            downvotes: updatedPost.downvotes
+            upvotes: updatedUpvotes,
+            downvotes: updatedDownvotes
           })
-          .eq('id', id);
+          .eq('id', entityId);
         
         if (error) {
           throw error;
         }
         
-        const updatedPosts = posts.map(p => p.id === id ? updatedPost : p);
+        const updatedPosts = posts.map(p => 
+          p.id === entityId ? { ...p, upvotes: updatedUpvotes, downvotes: updatedDownvotes } : p
+        );
         setPosts(updatedPosts);
-      } else {
+      } else if (entityType === 'comment') {
         let commentFound = false;
         const updatedComments = { ...comments };
         
         for (const postId in updatedComments) {
-          updatedComments[postId] = updatedComments[postId].map(comment => {
-            if (comment.id === id) {
-              commentFound = true;
-              return {
-                ...comment,
-                upvotes: voteType === 'upvote' ? comment.upvotes + 1 : comment.upvotes,
-                downvotes: voteType === 'downvote' ? comment.downvotes + 1 : comment.downvotes
-              };
+          const commentIndex = updatedComments[postId].findIndex(c => c.id === entityId);
+          
+          if (commentIndex >= 0) {
+            commentFound = true;
+            const comment = updatedComments[postId][commentIndex];
+            
+            let updatedUpvotes = comment.upvotes;
+            let updatedDownvotes = comment.downvotes;
+            
+            if (previousVote === 'upvote') {
+              updatedUpvotes--;
+            } else if (previousVote === 'downvote') {
+              updatedDownvotes--;
             }
-            return comment;
-          });
+            
+            if (newVote === 'upvote') {
+              updatedUpvotes++;
+            } else if (newVote === 'downvote') {
+              updatedDownvotes++;
+            }
+            
+            const { error } = await supabase
+              .from('discussion_comments')
+              .update({
+                upvotes: updatedUpvotes,
+                downvotes: updatedDownvotes
+              })
+              .eq('id', entityId);
+              
+            if (error) {
+              throw error;
+            }
+            
+            updatedComments[postId][commentIndex] = {
+              ...comment,
+              upvotes: updatedUpvotes,
+              downvotes: updatedDownvotes
+            };
+            
+            break;
+          }
         }
         
         if (commentFound) {
-          for (const postId in updatedComments) {
-            const updatedComment = updatedComments[postId].find(c => c.id === id);
-            if (updatedComment) {
-              const { error } = await supabase
-                .from('discussion_comments')
-                .update({
-                  upvotes: updatedComment.upvotes,
-                  downvotes: updatedComment.downvotes
-                })
-                .eq('id', id);
-                
-              if (error) {
-                throw error;
-              }
-              
-              setComments(updatedComments);
-              break;
-            }
-          }
+          setComments(updatedComments);
         }
       }
     } catch (error) {
@@ -444,11 +529,19 @@ const Discussions = () => {
                   </CardDescription>
                 </div>
                 <div className="flex flex-col items-center">
-                  <Button variant="ghost" size="sm" onClick={() => handleVote('post', post.id, 'upvote')}>
+                  <Button 
+                    variant={userVotes[post.id]?.vote === 'upvote' ? 'default' : 'ghost'} 
+                    size="sm" 
+                    onClick={() => handleVote(post.id, 'post', 'upvote')}
+                  >
                     <ArrowUp className="h-5 w-5" />
                   </Button>
                   <span className="font-bold">{post.upvotes - post.downvotes}</span>
-                  <Button variant="ghost" size="sm" onClick={() => handleVote('post', post.id, 'downvote')}>
+                  <Button 
+                    variant={userVotes[post.id]?.vote === 'downvote' ? 'default' : 'ghost'} 
+                    size="sm" 
+                    onClick={() => handleVote(post.id, 'post', 'downvote')}
+                  >
                     <ArrowDown className="h-5 w-5" />
                   </Button>
                 </div>
@@ -493,19 +586,19 @@ const Discussions = () => {
                     <div key={comment.id} className="flex gap-2 group">
                       <div className="flex flex-col items-center">
                         <Button 
-                          variant="ghost" 
+                          variant={userVotes[comment.id]?.vote === 'upvote' ? 'default' : 'ghost'} 
                           size="sm" 
                           className="h-6 w-6 p-0"
-                          onClick={() => handleVote('comment', comment.id, 'upvote')}
+                          onClick={() => handleVote(comment.id, 'comment', 'upvote')}
                         >
                           <ArrowUp className="h-4 w-4" />
                         </Button>
                         <span className="text-xs font-medium">{comment.upvotes - comment.downvotes}</span>
                         <Button 
-                          variant="ghost" 
+                          variant={userVotes[comment.id]?.vote === 'downvote' ? 'default' : 'ghost'} 
                           size="sm" 
                           className="h-6 w-6 p-0"
-                          onClick={() => handleVote('comment', comment.id, 'downvote')}
+                          onClick={() => handleVote(comment.id, 'comment', 'downvote')}
                         >
                           <ArrowDown className="h-4 w-4" />
                         </Button>

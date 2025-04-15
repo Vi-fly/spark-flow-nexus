@@ -22,3 +22,15 @@ export type DiscussionComment = {
   created_at: string;
   updated_at: string;
 }
+
+export type VoteType = "upvote" | "downvote" | null;
+export type ContentType = "post" | "comment";
+
+export type UserVoteRecord = {
+  type: ContentType;
+  vote: VoteType;
+};
+
+export type UserVotes = {
+  [id: string]: UserVoteRecord;
+};
