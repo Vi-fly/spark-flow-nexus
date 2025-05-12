@@ -525,7 +525,7 @@ const Discussions = () => {
                 <div>
                   <CardTitle className="text-xl">{post.title}</CardTitle>
                   <CardDescription>
-                    Posted by {post.user_id} · {new Date(post.created_at).toLocaleDateString()}
+                    Posted by {post.user_id.includes('@') ? post.user_id.split('@')[0] : post.user_id} · {new Date(post.created_at).toLocaleDateString()}
                   </CardDescription>
                 </div>
                 <div className="flex flex-col items-center">
